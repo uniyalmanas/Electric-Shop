@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroStock — Electrical Shop Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --graphite-900:#14181B;
+    --graphite-800:#1E2427;
+    --graphite-700:#2A3135;
+    --graphite-600:#38403F;
+    --copper:#C1793D;
+    --copper-bright:#E0954F;
+    --amber:#F0AD3E;
+    --circuit-green:#4FAE7A;
+    --signal-red:#D9584C;
+    --paper:#EDEAE3;
+    --muted:#93A0A3;
+    --font-display:'Space Grotesk',sans-serif;
+    --font-body:'IBM Plex Sans',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(193,121,61,0.08), transparent 45%),
+      var(--graphite-900);
+    color:var(--paper);
+    font-family:var(--font-body);
+    line-height:1.5;
+    min-height:100vh;
+  }
+
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  /* ---------- layout shell ---------- */
+  .shell{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- header / busbar ---------- */
+  header.busbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    padding:18px 22px;
+    background:linear-gradient(180deg, var(--graphite-800), var(--graphite-700));
+    border:1px solid var(--graphite-600);
+    border-radius:10px;
+    position:relative;
+    overflow:hidden;
+    flex-wrap:wrap;
+  }
+  header.busbar::before{
+    content:"";
+    position:absolute;
+    left:0;top:0;bottom:0;
+    width:6px;
+    background:repeating-linear-gradient(180deg, var(--copper) 0 10px, var(--amber) 10px 20px);
+    opacity:.8;
+  }
+  .brand{display:flex;align-items:baseline;gap:12px;padding-left:10px;}
+  .brand .eyebrow{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .brand h1{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:26px;
+    margin:0;
+    letter-spacing:-.01em;
+  }
+  .brand h1 span{color:var(--copper-bright);}
+
+  .header-meta{
+    display:flex;gap:22px;align-items:center;font-family:var(--font-mono);font-size:12px;color:var(--muted);
+  }
+  .header-meta .dot{width:7px;height:7px;border-radius:50%;background:var(--circuit-green);display:inline-block;margin-right:6px;box-shadow:0 0 6px var(--circuit-green);}
+
+  /* ---------- controls ---------- */
+  .controls{
+    margin-top:22px;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .search-wrap{
+    flex:1;
+    min-width:220px;
+    position:relative;
+  }
+  .search-wrap input{
+    width:100%;
+    padding:12px 14px 12px 38px;
+    background:var(--graphite-800);
+    border:1px solid var(--graphite-600);
+    border-radius:8px;
+    color:var(--paper);
+    font-size:14px;
+    font-family:var(--font-body);
+  }
+  .search-wrap input:focus{outline:2px solid var(--copper-bright);outline-offset:1px;}
+  .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--muted);}
+
+  .sort-select{
+    padding:11px 14px;
+    background:var(--graphite-800);
+    border:1px solid var(--graphite-600);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:var(--font-mono);
+    font-size:12px;
+  }
+  .sort-select:focus-visible, .search-wrap input:focus-visible{outline:2px solid var(--copper-bright);}
+
+  /* category pills styled like breaker toggles */
+  .categories{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+  .pill{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:.03em;
+    padding:8px 13px;
+    border-radius:6px;
+    border:1px solid var(--graphite-600);
+    background:var(--graphite-800);
+    color:var(--muted);
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .pill::before{
+    content:"";
+    width:6px;height:6px;border-radius:50%;
+    background:var(--graphite-600);
+  }
+  .pill:hover{border-color:var(--copper);color:var(--paper);}
+  .pill.active{
+    background:var(--copper);
+    color:#1a120a;
+    border-color:var(--copper);
+    font-weight:600;
+  }
+  .pill.active::before{background:#1a120a;}
+
+  @media (prefers-reduced-motion: no-preference){
+    .pill{transition:background .15s ease, color .15s ease, border-color .15s ease;}
+  }
+
+  /* ---------- most used strip ---------- */
+  .most-used{
+    margin-top:26px;
+    padding:16px 18px;
+    background:linear-gradient(90deg, rgba(240,173,62,0.09), transparent);
+    border:1px solid rgba(240,173,62,0.25);
+    border-radius:10px;
+    display:none;
+  }
+  .most-used.show{display:block;}
+  .most-used h2{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .most-used-row{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .chip{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--graphite-800);
+    border:1px solid var(--graphite-600);
+    padding:8px 12px;
+    border-radius:20px;
+    font-size:12.5px;
+    white-space:nowrap;
+  }
+  .chip .bulb{width:13px;height:13px;flex:none;}
+  .chip .stock-tag{font-family:var(--font-mono);color:var(--muted);font-size:11px;}
+
+  /* ---------- results meta ---------- */
+  .results-meta{
+    margin:22px 2px 12px;
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+  }
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:14px;
+  }
+
+  .card{
+    background:var(--graphite-800);
+    border:1px solid var(--graphite-600);
+    border-radius:10px;
+    padding:16px;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    transition:border-color .15s ease, transform .15s ease;
+  }
+  .card:hover{border-color:var(--copper);}
+  @media (prefers-reduced-motion: no-preference){
+    .card:hover{transform:translateY(-2px);}
+  }
+
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .card-cat{
+    font-family:var(--font-mono);
+    font-size:10px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--copper-bright);
+  }
+  .card-name{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:15.5px;
+    line-height:1.3;
+    margin:0;
+  }
+  .card-sub{font-size:12.5px;color:var(--muted);}
+
+  .star-btn{
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:2px;
+    flex:none;
+    border-radius:6px;
+  }
+  .star-btn:focus-visible{outline:2px solid var(--copper-bright);}
+  .bulb{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.6;transition:stroke .15s ease, fill .15s ease, filter .15s ease;}
+  .star-btn[aria-pressed="true"] .bulb{
+    stroke:var(--amber);
+    fill:rgba(240,173,62,0.35);
+    filter:drop-shadow(0 0 5px rgba(240,173,62,0.7));
+  }
+
+  .card-specs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--muted);
+  }
+  .spec-tag{
+    border:1px solid var(--graphite-600);
+    padding:3px 7px;
+    border-radius:5px;
+  }
+
+  .card-bottom{
+    margin-top:auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:10px;
+  }
+  .price{
+    font-family:var(--font-mono);
+    font-size:15px;
+    font-weight:600;
+    color:var(--paper);
+  }
+  .price small{color:var(--muted);font-weight:400;font-size:10.5px;}
+
+  .stock-meter{width:96px;}
+  .stock-label{
+    font-family:var(--font-mono);
+    font-size:10px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:4px;
+  }
+  .meter-track{
+    height:6px;
+    background:var(--graphite-700);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .meter-fill{height:100%;border-radius:4px;}
+  .meter-fill.ok{background:var(--circuit-green);}
+  .meter-fill.low{background:var(--amber);}
+  .meter-fill.critical{background:var(--signal-red);}
+
+  .empty-state{
+    grid-column:1/-1;
+    text-align:center;
+    padding:60px 20px;
+    color:var(--muted);
+    font-family:var(--font-mono);
+    font-size:13px;
+  }
+
+  footer{
+    margin-top:50px;
+    padding-top:20px;
+    border-top:1px solid var(--graphite-700);
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  @media (max-width:520px){
+    .shell{padding:18px 14px 60px;}
+    header.busbar{padding:16px;}
+    .brand h1{font-size:21px;}
+    .header-meta{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="busbar">
+    <div class="brand">
+      <div>
+        <div class="eyebrow">Inventory · Electrical Retail</div>
+        <h1>Electro<span>Stock</span></h1>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span><span class="dot"></span>Live catalog</span>
+      <span id="itemCountMeta">— items</span>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input type="text" id="searchInput" placeholder="Search wire, MCB, switch, brand…" autocomplete="off">
+    </div>
+    <select class="sort-select" id="sortSelect">
+      <option value="name">SORT: NAME A–Z</option>
+      <option value="stock-low">SORT: STOCK (LOW FIRST)</option>
+      <option value="price-low">SORT: PRICE (LOW FIRST)</option>
+      <option value="price-high">SORT: PRICE (HIGH FIRST)</option>
+      <option value="starred">SORT: STARRED FIRST</option>
+    </select>
+  </div>
+
+  <div class="categories" id="categoryPills"></div>
+
+  <section class="most-used" id="mostUsedSection">
+    <h2>⭐ Your Most Used Items</h2>
+    <div class="most-used-row" id="mostUsedRow"></div>
+  </section>
+
+  <div class="results-meta">
+    <span id="resultsCount">Showing all items</span>
+    <span>Click the bulb to star a product you restock or sell often</span>
+  </div>
+
+  <div class="grid" id="productGrid"></div>
+
+  <footer>
+    <span>ElectroStock — inventory reference, electrical retail</span>
+    <span>Star data saved locally in this browser</span>
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   PRODUCT CATALOG
+   Categories, brands and typical specs reflect what an Indian
+   electrical retail shop commonly stocks: wires/cables, switches
+   & sockets, MCBs/switchgear, distribution boards, conduits,
+   lighting, fans, water heaters, tools, extension boards,
+   stabilizers/capacitors, and bells. Prices are indicative
+   retail ranges in INR, stock/threshold are sample figures —
+   replace with your real counts.
+============================================================ */
+const CATEGORIES = [
+  {id:'wires',label:'Wires & Cables'},
+  {id:'switches',label:'Switches & Sockets'},
+  {id:'mcb',label:'MCB & Switchgear'},
+  {id:'db',label:'Distribution Boards'},
+  {id:'conduits',label:'Conduits & Pipes'},
+  {id:'lighting',label:'Lighting'},
+  {id:'fans',label:'Fans'},
+  {id:'heaters',label:'Water Heaters'},
+  {id:'extension',label:'Extension & Multi-plug'},
+  {id:'stabilizers',label:'Stabilizers & Capacitors'},
+  {id:'tools',label:'Tools & Accessories'},
+  {id:'bells',label:'Bells & Alarms'},
+];
+
+let idCounter = 1;
+function item(name, category, brand, spec, unit, price, stock, threshold){
+  return {id: idCounter++, name, category, brand, spec, unit, price, stock, threshold};
+}
+
+const PRODUCTS = [
+  // ---- Wires & Cables ----
+  item('House Wire 1.0 sq mm', 'wires', 'Finolex', 'FR, 90m coil', 'coil', 950, 42, 10),
+  item('House Wire 1.5 sq mm', 'wires', 'Polycab', 'HRFR, 90m coil', 'coil', 1320, 55, 10),
+  item('House Wire 1.5 sq mm', 'wires', 'Havells', 'HRFR Life Line, 90m coil', 'coil', 1450, 18, 10),
+  item('House Wire 2.5 sq mm', 'wires', 'Finolex', 'FR, 90m coil', 'coil', 1980, 30, 8),
+  item('House Wire 4.0 sq mm', 'wires', 'Polycab', 'HRFR, 90m coil', 'coil', 3150, 14, 6),
+  item('House Wire 6.0 sq mm', 'wires', 'RR Kabel', 'FRLS, 90m coil', 'coil', 4680, 9, 5),
+  item('Armoured Cable 2-core', 'wires', 'KEI', '4 sq mm, per meter', 'meter', 92, 260, 50),
+  item('Submersible Cable', 'wires', 'Finolex', '3-core, 4 sq mm, per meter', 'meter', 78, 180, 40),
+  item('Co-axial / TV Cable', 'wires', 'Polycab', 'RG-6, per meter', 'meter', 14, 320, 60),
+  item('Telephone Cable', 'wires', 'Kalinga', '2-pair, per meter', 'meter', 8, 210, 50),
+  item('Flexible Wire 0.75 sq mm', 'wires', 'Anchor', 'FR, 90m coil', 'coil', 720, 25, 8),
+
+  // ---- Switches & Sockets ----
+  item('1-Way Switch 6A', 'switches', 'Anchor Roma', 'White modular', 'piece', 35, 140, 30),
+  item('2-Way Switch 6A', 'switches', 'Havells Crabtree', 'White modular', 'piece', 55, 90, 20),
+  item('6A 3-Pin Socket', 'switches', 'Legrand Myrius', 'White modular', 'piece', 65, 110, 25),
+  item('16A 3-Pin Socket', 'switches', 'GM Modular', 'White modular', 'piece', 95, 70, 15),
+  item('Switch + Socket Combo', 'switches', 'Anchor Roma', '6A, white modular', 'piece', 110, 65, 15),
+  item('Fan Regulator (Step)', 'switches', 'Anchor', '5-step, modular', 'piece', 145, 40, 10),
+  item('Fan Regulator (Electronic)', 'switches', 'Havells', 'Stepless, modular', 'piece', 320, 22, 8),
+  item('Modular Plate 3M', 'switches', 'GM Modular', 'White', 'piece', 40, 85, 20),
+  item('Modular Plate 8M', 'switches', 'Anchor Roma', 'White', 'piece', 95, 45, 12),
+  item('Dimmer Switch', 'switches', 'Legrand', '400W, modular', 'piece', 380, 16, 6),
+  item('Bell Push Switch', 'switches', 'Anchor', 'Modular', 'piece', 30, 60, 15),
+  item('TV/Telephone Socket', 'switches', 'GM Modular', 'Modular', 'piece', 75, 38, 10),
+
+  // ---- MCB & Switchgear ----
+  item('MCB Single Pole 6A', 'mcb', 'Havells', 'C-curve', 'piece', 145, 48, 12),
+  item('MCB Single Pole 16A', 'mcb', 'Havells', 'C-curve', 'piece', 150, 60, 15),
+  item('MCB Single Pole 32A', 'mcb', 'L&T', 'C-curve', 'piece', 165, 35, 10),
+  item('MCB Double Pole 40A', 'mcb', 'Legrand', 'C-curve', 'piece', 420, 20, 6),
+  item('MCB Triple Pole 63A', 'mcb', 'Schneider', 'C-curve', 'piece', 980, 8, 4),
+  item('RCCB 25A 30mA', 'mcb', 'Havells', '4-pole', 'piece', 1450, 12, 4),
+  item('RCCB 40A 30mA', 'mcb', 'Legrand', '4-pole', 'piece', 1780, 9, 3),
+  item('Isolator 63A', 'mcb', 'L&T', '4-pole', 'piece', 650, 14, 5),
+  item('Change Over Switch 32A', 'mcb', 'Havells', 'Manual, 4-pole', 'piece', 1250, 7, 3),
+  item('Porcelain Fuse Unit', 'mcb', 'Anchor', '16A, kit-kat type', 'piece', 45, 55, 15),
+  item('MCB Mini 6A', 'mcb', 'Hager', 'Single pole', 'piece', 130, 30, 10),
+
+  // ---- Distribution Boards ----
+  item('DB 4-Way SPN', 'db', 'Havells', 'Metal, single door', 'piece', 620, 15, 5),
+  item('DB 8-Way SPN', 'db', 'Legrand', 'Metal, single door', 'piece', 980, 10, 4),
+  item('DB 12-Way TPN', 'db', 'Havells', 'Metal, double door', 'piece', 1850, 6, 3),
+  item('DB 4-Way Plastic', 'db', 'Anchor', 'Surface mount', 'piece', 320, 18, 6),
+  item('Distribution Box Cover', 'db', 'Generic', '8-way, blank plate', 'piece', 85, 25, 8),
+  item('Bus Bar Kit', 'db', 'L&T', '4-pole, for DB', 'piece', 240, 20, 6),
+
+  // ---- Conduits & Pipes ----
+  item('PVC Conduit Pipe 20mm', 'conduits', 'Precision', 'Rigid, 3m length', 'piece', 60, 90, 20),
+  item('PVC Conduit Pipe 25mm', 'conduits', 'AKG', 'Rigid, 3m length', 'piece', 78, 75, 18),
+  item('Flexible Conduit Pipe 20mm', 'conduits', 'Precision', 'Per meter', 'meter', 18, 240, 50),
+  item('PVC Junction Box 4x4', 'conduits', 'Generic', 'Square, with cover', 'piece', 22, 150, 30),
+  item('Conduit Bend (Elbow)', 'conduits', 'AKG', '20mm', 'piece', 12, 200, 40),
+  item('Conduit Clip', 'conduits', 'Generic', '20mm, pack of 50', 'pack', 55, 60, 15),
+  item('Casing Capping 2x1', 'conduits', 'Precision', 'PVC, 2m length', 'piece', 45, 110, 25),
+
+  // ---- Lighting ----
+  item('LED Bulb 9W', 'lighting', 'Philips', 'B22, cool day light', 'piece', 85, 220, 40),
+  item('LED Bulb 12W', 'lighting', 'Havells', 'B22, warm white', 'piece', 110, 180, 35),
+  item('LED Tube Light 20W', 'lighting', 'Syska', '4ft, batten', 'piece', 240, 95, 20),
+  item('LED Panel Light 18W', 'lighting', 'Havells', 'Round, surface', 'piece', 320, 60, 15),
+  item('LED Flood Light 50W', 'lighting', 'Crompton', 'IP65 outdoor', 'piece', 680, 25, 8),
+  item('Decorative String Lights', 'lighting', 'Syska', '10m, warm white', 'piece', 190, 40, 10),
+  item('Emergency LED Bulb', 'lighting', 'Havells', '9W rechargeable', 'piece', 320, 30, 8),
+  item('Holder (Bulb Base)', 'lighting', 'Anchor', 'B22, plastic', 'piece', 20, 140, 30),
+
+  // ---- Fans ----
+  item('Ceiling Fan 1200mm', 'fans', 'Havells', 'High speed, white', 'piece', 1650, 22, 6),
+  item('Ceiling Fan 1200mm', 'fans', 'Crompton', 'Energy saver, brown', 'piece', 1980, 15, 5),
+  item('Exhaust Fan 6 inch', 'fans', 'Havells', 'Metal blade', 'piece', 650, 18, 6),
+  item('Table Fan 400mm', 'fans', 'Orient', 'High speed, 3 blade', 'piece', 1450, 12, 4),
+  item('Wall Fan 400mm', 'fans', 'Bajaj', 'Oscillating', 'piece', 1580, 10, 4),
+  item('BLDC Ceiling Fan', 'fans', 'Havells', '5-star rated, remote', 'piece', 3200, 8, 3),
+
+  // ---- Water Heaters ----
+  item('Storage Water Heater 15L', 'heaters', 'Havells', 'Vertical, 5-star', 'piece', 6800, 6, 2),
+  item('Storage Water Heater 25L', 'heaters', 'V-Guard', 'Vertical, 4-star', 'piece', 8900, 4, 2),
+  item('Instant Water Heater 3L', 'heaters', 'Havells', 'Wall mount', 'piece', 3200, 9, 3),
+  item('Immersion Rod 1500W', 'heaters', 'Bajaj', 'Copper element', 'piece', 480, 20, 6),
+
+  // ---- Extension & Multi-plug ----
+  item('Extension Board 4-Socket', 'extension', 'Anchor', '5m cord, with switch', 'piece', 420, 35, 10),
+  item('Extension Board 6-Socket', 'extension', 'GM Modular', '5m cord, surge protected', 'piece', 650, 22, 8),
+  item('Power Strip Universal', 'extension', 'Havells', '4-socket, 3m cord', 'piece', 380, 28, 8),
+  item('Multi-Plug Adapter', 'extension', 'Anchor', '3-pin to 3-socket', 'piece', 90, 60, 15),
+
+  // ---- Stabilizers & Capacitors ----
+  item('Voltage Stabilizer (AC)', 'stabilizers', 'V-Guard', '4kVA, for 1.5 ton AC', 'piece', 2450, 10, 3),
+  item('Voltage Stabilizer (TV)', 'stabilizers', 'V-Guard', '0.5kVA', 'piece', 850, 14, 4),
+  item('Voltage Stabilizer (Fridge)', 'stabilizers', 'V-Guard', '1kVA', 'piece', 1350, 12, 4),
+  item('Ceiling Fan Capacitor', 'stabilizers', 'Havells', '2.5 MFD', 'piece', 45, 90, 20),
+  item('Motor Run Capacitor', 'stabilizers', 'Generic', '4 MFD', 'piece', 65, 55, 15),
+
+  // ---- Tools & Accessories ----
+  item('Electrician Combination Plier', 'tools', 'Taparia', '8 inch, insulated', 'piece', 220, 25, 8),
+  item('Screwdriver Set', 'tools', 'Taparia', '6-piece insulated set', 'set', 380, 18, 6),
+  item('Digital Multimeter', 'tools', 'Meco', 'Auto-range', 'piece', 950, 10, 4),
+  item('Line Tester (Voltage Detector)', 'tools', 'Generic', 'Screwdriver type', 'piece', 40, 70, 15),
+  item('Insulation Tape', 'tools', '3M', 'Black, pack of 10', 'pack', 150, 45, 12),
+  item('Cable Tie (Nylon)', 'tools', 'Generic', '150mm, pack of 100', 'pack', 90, 40, 10),
+  item('Wire Stripper Cutter', 'tools', 'Taparia', 'Automatic', 'piece', 340, 15, 5),
+  item('Soldering Iron 25W', 'tools', 'Generic', 'With stand', 'piece', 220, 12, 4),
+  item('Earthing Rod (Copper)', 'tools', 'Generic', '3ft, 17mm', 'piece', 480, 20, 6),
+  item('Junction Connector Strip', 'tools', 'Generic', '12-way, pack of 5', 'pack', 65, 50, 12),
+
+  // ---- Bells & Alarms ----
+  item('Wireless Doorbell', 'bells', 'Generic', 'Battery operated', 'piece', 350, 22, 6),
+  item('Wired Musical Doorbell', 'bells', 'Anchor', '2-tone', 'piece', 180, 30, 8),
+  item('Calling Bell Transformer', 'bells', 'Generic', '8V, for wired bell', 'piece', 90, 25, 6),
+];
+
+/* ============================================================
+   STATE
+============================================================ */
+const STORAGE_KEY = 'electrostock_starred_v1';
+let starred = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+let activeCategory = 'all';
+let searchTerm = '';
+let sortMode = 'name';
+
+function saveStarred(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...starred]));
+}
+
+/* ============================================================
+   RENDER: category pills
+============================================================ */
+function renderCategoryPills(){
+  const wrap = document.getElementById('categoryPills');
+  const all = [{id:'all', label:'All Items'}, ...CATEGORIES];
+  wrap.innerHTML = '';
+  all.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (activeCategory === cat.id ? ' active' : '');
+    btn.textContent = cat.label;
+    btn.setAttribute('aria-pressed', activeCategory === cat.id);
+    btn.addEventListener('click', () => {
+      activeCategory = cat.id;
+      renderCategoryPills();
+      renderGrid();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   BULB ICON (signature element)
+============================================================ */
+function bulbSVG(){
+  return `<svg class="bulb" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.45 1.1 1.15 1.1 1.95V16h5v-.25c0-.8.5-1.5 1.1-1.95A6 6 0 0 0 12 3Z"/>
+  </svg>`;
+}
+
+/* ============================================================
+   RENDER: most used strip
+============================================================ */
+function renderMostUsed(){
+  const section = document.getElementById('mostUsedSection');
+  const row = document.getElementById('mostUsedRow');
+  const items = PRODUCTS.filter(p => starred.has(p.id));
+
+  if(items.length === 0){
+    section.classList.remove('show');
+    row.innerHTML = '';
+    return;
+  }
+  section.classList.add('show');
+  row.innerHTML = items.map(p => `
+    <div class="chip">
+      ${bulbSVG().replace('class="bulb"', 'class="bulb" style="stroke:var(--amber);fill:rgba(240,173,62,0.35);width:14px;height:14px"')}
+      <span>${p.name}</span>
+      <span class="stock-tag">${p.stock} ${p.unit}</span>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   RENDER: product grid
+============================================================ */
+function stockClass(p){
+  if(p.stock <= p.threshold * 0.5) return 'critical';
+  if(p.stock <= p.threshold) return 'low';
+  return 'ok';
+}
+
+function renderGrid(){
+  const grid = document.getElementById('productGrid');
+  const countMeta = document.getElementById('itemCountMeta');
+  const resultsCount = document.getElementById('resultsCount');
+
+  let list = PRODUCTS.filter(p => {
+    const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
+    const haystack = (p.name + ' ' + p.brand + ' ' + p.spec).toLowerCase();
+    const matchesSearch = haystack.includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  switch(sortMode){
+    case 'stock-low': list.sort((a,b) => a.stock - b.stock); break;
+    case 'price-low': list.sort((a,b) => a.price - b.price); break;
+    case 'price-high': list.sort((a,b) => b.price - a.price); break;
+    case 'starred': list.sort((a,b) => (starred.has(b.id)?1:0) - (starred.has(a.id)?1:0)); break;
+    default: list.sort((a,b) => a.name.localeCompare(b.name));
+  }
+
+  countMeta.textContent = `${PRODUCTS.length} items in catalog`;
+  resultsCount.textContent = `Showing ${list.length} of ${PRODUCTS.length} items`;
+
+  if(list.length === 0){
+    grid.innerHTML = `<div class="empty-state">No items match "${searchTerm}". Try a different search or category.</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(p => {
+    const isStarred = starred.has(p.id);
+    const sClass = stockClass(p);
+    const pct = Math.min(100, Math.round((p.stock / (p.threshold * 3)) * 100));
+    return `
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <div class="card-cat">${CATEGORIES.find(c => c.id === p.category)?.label || p.category}</div>
+            <h3 class="card-name">${p.name}</h3>
+            <div class="card-sub">${p.brand}</div>
+          </div>
+          <button class="star-btn" aria-pressed="${isStarred}" aria-label="Mark ${p.name} as most used" data-id="${p.id}">
+            ${bulbSVG()}
+          </button>
+        </div>
+        <div class="card-specs">
+          <span class="spec-tag">${p.spec}</span>
+          <span class="spec-tag">per ${p.unit}</span>
+        </div>
+        <div class="card-bottom">
+          <div class="price">₹${p.price.toLocaleString('en-IN')}<br><small>per ${p.unit}</small></div>
+          <div class="stock-meter">
+            <div class="stock-label"><span>${p.stock} in stock</span></div>
+            <div class="meter-track"><div class="meter-fill ${sClass}" style="width:${pct}%"></div></div>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      if(starred.has(id)) starred.delete(id); else starred.add(id);
+      saveStarred();
+      renderMostUsed();
+      renderGrid();
+    });
+  });
+}
+
+/* ============================================================
+   EVENTS
+============================================================ */
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchTerm = e.target.value;
+  renderGrid();
+});
+document.getElementById('sortSelect').addEventListener('change', (e) => {
+  sortMode = e.target.value;
+  renderGrid();
+});
+
+/* ============================================================
+   INIT
+============================================================ */
+renderCategoryPills();
+renderMostUsed();
+renderGrid();
+</script>
+</body>
+</html>
