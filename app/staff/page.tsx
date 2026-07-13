@@ -496,6 +496,11 @@ Thank you for purchasing with us!`;
       setPaymentType('cash');
       setAmountPaid('');
       fetchStock();
+
+      // Trigger background PDF generation and WhatsApp push
+      fetch(`/api/sales/${result.sale_id}/pdf`, { method: 'POST' }).catch((err) => {
+        console.error('Failed to trigger background PDF invoice WhatsApp push:', err);
+      });
     }
   }
 
