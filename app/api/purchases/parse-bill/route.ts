@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
 
     if (apiKey) {
       try {
-        // 1. Invoke Gemini 1.5 Flash to parse the document using inlineData
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // 1. Invoke Gemini 3.5 Flash to parse the document using inlineData
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
         
         const promptText = `
           You are an expert OCR accountant and electrical hardware specialist. Analyze this supplier purchase invoice. 

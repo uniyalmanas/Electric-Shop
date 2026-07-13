@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
 
     if (apiKey) {
       try {
-        console.log('Calling Gemini 1.5 Flash with audio file directly for transcription and parsing...');
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        console.log('Calling Gemini 3.5 Flash with audio file directly for transcription and parsing...');
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
         
         const prompt = `You are a voice command parser for Gupta Electricals, an Indian retail electrical shop.
 Listen to this spoken Hinglish/Hindi command.
