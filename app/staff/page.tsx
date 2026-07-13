@@ -221,6 +221,7 @@ export default function StaffDashboard() {
 
       setTranscriptionText(data.transcription);
       const parsed = data.parsed;
+      const prefix = data.is_mock ? '⚠️ [Mock Fallback Mode] ' : '';
 
       if (parsed.action === 'sale') {
         setMode('billing');
@@ -247,9 +248,9 @@ export default function StaffDashboard() {
           }
           if (newCartItems.length > 0) {
             setCart(newCartItems);
-            alert(`Voice parsed: "${data.transcription}"\nItems pre-filled in cart!`);
+            alert(`${prefix}Voice parsed: "${data.transcription}"\nItems pre-filled in cart!`);
           } else {
-            alert(`Voice parsed: "${data.transcription}"\nNo matching products found.`);
+            alert(`${prefix}Voice parsed: "${data.transcription}"\nNo matching products found.`);
           }
         }
       } else if (parsed.action === 'adjust_in' || parsed.action === 'adjust_out') {
@@ -263,11 +264,11 @@ export default function StaffDashboard() {
           if (product) {
             setSelectedAdjustItem(product);
             setAdjustQty(String(firstVoiceItem.quantity));
-            alert(`Voice parsed: "${data.transcription}"\nAdjust stock count for: ${product.name}`);
+            alert(`${prefix}Voice parsed: "${data.transcription}"\nAdjust stock count for: ${product.name}`);
           }
         }
       } else {
-        alert(`Voice heard: "${data.transcription}"\nTry stating e.g. "Ramesh contractor ko 5 switches do".`);
+        alert(`${prefix}Voice heard: "${data.transcription}"\nTry stating e.g. "Ramesh contractor ko 5 switches do".`);
       }
     } catch (err: any) {
       setVoiceState('idle');

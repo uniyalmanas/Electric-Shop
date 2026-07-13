@@ -26,6 +26,8 @@ Niche inventory + finance management for electrical shops, built on Next.js + Su
   and logs payables to the `supplier_ledger` before committing the stock increase.
 - **Development Mock Fallback Mode** — automatically activates if `GOOGLE_API_KEY` is inactive
   or leaked, generating simulated invoices containing real products in your database for seamless testing.
+- **Hinglish Voice Counter Billing** (`app/api/voice-transcribe/route.ts`) — allows cashiers to click the mic button on the counter POS and speak counter orders in mixed Hinglish (e.g. *"Ramesh Electrician ko 10 rolls Polycab 1.5 wire do credit pe"*). Gemini 1.5 Flash transcribes the audio, identifies items/quantities, resolves the customer, and populates the checkout cart in one step.
+- **Voice Command Mock Fallback** — automatically responds with realistic sample Hinglish commands (and pre-populates the billing or stock adjustment panels) if the Gemini STT/parsing API fails or is inactive.
 
 ## Setup
 
@@ -52,10 +54,7 @@ don't belong in a v1:
 2. **Actual GST filing** (submitting returns to GSTN). Requires GST Suvidha Provider
    licensing — a regulatory undertaking, not a feature. v1 generates GSTR-1/3B-ready
    *reports* for the CA; filing itself stays manual, as it is today.
-3. **Voice input** — the button exists in `app/staff/page.tsx` as a placeholder. Needs:
-   speech-to-text (Hindi/Hinglish) → parse into product+qty+action → confirm screen
-   before committing. Worth building next, since it directly targets the #1 reason
-   these apps get abandoned (typing friction).
+3. **Voice input** — **Built!** Fully supported on both frontend and backend using Gemini 1.5 Flash's multimodal audio capabilities, with a development fallback mock mode.
 4. **Email Inbound forwarding** — we have built the OCR upload UI and API, but auto-forwarding invoices from an email address (like `billing@guptaelectricals.com`) to the API via webhooks (e.g., Mailgun/SendGrid inbound parse) is not yet configured.
 5. **Reconciliation UI** — table exists in the schema; no screen yet for owner to review
    physical-count-vs-system discrepancies.
