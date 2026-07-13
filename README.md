@@ -18,9 +18,14 @@ Niche inventory + finance management for electrical shops, built on Next.js + Su
 - **Stock movement API** (`app/api/stock-movements/route.ts`) — every stock change is
   logged with who did it and why (`sale`, `internal_use`, `damage`, `return`), which is
   the actual fix for stock "going unnoticed."
-- **Email/PDF purchase ingestion stub** (`app/api/purchases/ingest-email/route.ts`) —
-  the endpoint an email-parsing pipeline calls to create a `pending_review` purchase.
-  Nothing updates stock silently — the owner/worker confirms before it commits.
+- **Gemini OCR Purchase Ingestion & AI Fuzzy Matcher** (`app/api/purchases/parse-bill/route.ts`) —
+  converts uploaded distributor invoice images or PDFs into structured purchase drafts. It queries
+  your 87-item catalog and pre-matches invoice lines to database product IDs.
+- **Purchase Review & Stock Reconciliation Panel** (`app/owner/purchases/review/page.tsx`) —
+  lets the owner review, edit item quantities/costs, and approve. Re-computes final purchase values
+  and logs payables to the `supplier_ledger` before committing the stock increase.
+- **Development Mock Fallback Mode** — automatically activates if `GOOGLE_API_KEY` is inactive
+  or leaked, generating simulated invoices containing real products in your database for seamless testing.
 
 ## Setup
 
@@ -51,10 +56,7 @@ don't belong in a v1:
    speech-to-text (Hindi/Hinglish) → parse into product+qty+action → confirm screen
    before committing. Worth building next, since it directly targets the #1 reason
    these apps get abandoned (typing friction).
-4. **Email/PDF ingestion pipeline** — the API route exists, but the upstream pieces
-   (inbound email receiving, PDF/OCR extraction, LLM-based line-item parsing) aren't
-   wired in yet. Recommended stack: Mailgun or SendGrid inbound parse → Claude API for
-   extraction → this endpoint.
+4. **Email Inbound forwarding** — we have built the OCR upload UI and API, but auto-forwarding invoices from an email address (like `billing@guptaelectricals.com`) to the API via webhooks (e.g., Mailgun/SendGrid inbound parse) is not yet configured.
 5. **Reconciliation UI** — table exists in the schema; no screen yet for owner to review
    physical-count-vs-system discrepancies.
 
