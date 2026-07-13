@@ -118,7 +118,11 @@ export default function PurchasesReviewPage() {
         if (result.error) {
           alert('OCR Error: ' + result.error);
         } else {
-          alert('✅ Bill parsed successfully! Review extracted items below.');
+          if (result.is_mock) {
+            alert('⚠️ Warning: Using mock invoice data. Your GOOGLE_API_KEY in .env.local is missing or has been blocked/leaked. Please update it with a valid key from Google AI Studio to use real OCR scanning.');
+          } else {
+            alert('✅ Bill parsed successfully! Review extracted items below.');
+          }
           loadData();
         }
       } catch (err: any) {

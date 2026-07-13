@@ -223,15 +223,25 @@ export async function PUT(req: NextRequest) {
     });
   }
 
-  // Update purchase status to confirmed
+  // Calculate updated total amount based on active reviewed quantities & cost prices
+  let calculatedTotal = 0;
+  for (const item of items) {
+    calculatedTotal += (Number(item.quantity) || 0) * (Number(item.cost_price) || 0);
+  }
+  const newAmountDue = Math.max(0, calculatedTotal - Number(purchase.amount_paid || 0));
+
+  // Update purchase status, total_amount, and amount_due to confirmed
   await supabase
     .from('purchases')
-    .update({ status: 'confirmed' })
+    .update({ 
+      status: 'confirmed',
+      total_amount: calculatedTotal,
+      amount_due: newAmountDue
+    })
     .eq('id', purchase_id);
 
   // Log into supplier ledger if payable exists
-  const amountDueNum = Number(purchase.amount_due) || 0;
-  if (amountDueNum > 0 && purchase.supplier_id) {
+  if (newAmountDue > 0 && purchase.supplier_id) {
     // Get supplier terms
     const { data: supplierInfo } = await supabase
       .from('suppliers')
@@ -248,7 +258,7 @@ export async function PUT(req: NextRequest) {
       shop_id: shopId,
       supplier_id: purchase.supplier_id,
       purchase_id,
-      amount: amountDueNum,
+      amount: newAmountDue,
       type: 'payable',
       due_date: dueDateString,
     });
