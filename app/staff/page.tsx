@@ -91,6 +91,117 @@ export default function StaffDashboard() {
     init();
   }, []);
 
+  // --- ADDED POS IMPROVEMENTS ---
+  const [suspendedCart, setSuspendedCart] = useState<{
+    cart: CartItem[];
+    customer: Customer | null;
+    paymentType: 'cash' | 'upi' | 'credit';
+    amountPaid: string;
+  } | null>(null);
+
+  // Global Barcode Scan Event
+  useEffect(() => {
+    let barcode = '';
+    let lastKeyTime = Date.now();
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+        return;
+      }
+
+      const currentTime = Date.now();
+      if (currentTime - lastKeyTime > 120) {
+        barcode = '';
+      }
+
+      if (e.key === 'Enter') {
+        if (barcode.length > 3) {
+          e.preventDefault();
+          const matched = stock.find((s) => s.barcode === barcode);
+          if (matched) {
+            addToCart(matched);
+            alert(`Scanned: ${matched.name} (Qty +1)`);
+          } else {
+            alert(`Barcode scanned: "${barcode}", but no product matches in database.`);
+          }
+          barcode = '';
+        }
+      } else if (e.key.length === 1 && /\d/.test(e.key)) {
+        barcode += e.key;
+        lastKeyTime = currentTime;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [stock]);
+
+  function updateCartPrice(itemId: string, price: number) {
+    setCart(cart.map((c) => c.product.id === itemId ? { ...c, price } : c));
+  }
+
+  function holdCart() {
+    if (cart.length === 0) return;
+    setSuspendedCart({
+      cart: [...cart],
+      customer: selectedCustomer,
+      paymentType,
+      amountPaid,
+    });
+    setCart([]);
+    setSelectedCustomer(null);
+    setPaymentType('cash');
+    setAmountPaid('');
+    alert('Invoice billing suspended and put on hold.');
+  }
+
+  function retrieveCart() {
+    if (!suspendedCart) return;
+    setCart(suspendedCart.cart);
+    setSelectedCustomer(suspendedCart.customer);
+    setPaymentType(suspendedCart.paymentType);
+    setAmountPaid(suspendedCart.amountPaid);
+    setSuspendedCart(null);
+    alert('Held invoice billing retrieved.');
+  }
+
+  function sendWhatsAppReceipt() {
+    if (!lastSaleDetails) return;
+    const phoneInput = prompt(
+      'Enter customer phone number (10 digits):',
+      lastSaleDetails.customer?.phone || ''
+    );
+    if (!phoneInput) return;
+    
+    const phone = phoneInput.replace(/\D/g, '');
+    if (phone.length < 10) {
+      alert('Please enter a valid 10-digit phone number.');
+      return;
+    }
+
+    const itemsStr = lastSaleDetails.items
+      .map((item: any) => `• ${item.product.name} x ${item.quantity} = ₹${(item.quantity * item.price).toLocaleString()}`)
+      .join('\n');
+
+    const message = `*GUPTA ELECTRICALS*
+Invoice ID: ${lastSaleDetails.id.slice(0, 8).toUpperCase()}
+Date: ${new Date().toLocaleDateString('en-IN')}
+Customer: ${lastSaleDetails.customer?.name || 'Walk-In'}
+Payment: ${lastSaleDetails.paymentType.toUpperCase()}
+-------------------------
+${itemsStr}
+-------------------------
+*Grand Total: ₹${Number(lastSaleDetails.total).toLocaleString()}*
+Amount Paid: ₹${Number(lastSaleDetails.amountPaid).toLocaleString()}
+${Number(lastSaleDetails.amountDue) > 0 ? `*Balance Due (Credit): ₹${Number(lastSaleDetails.amountDue).toLocaleString()}*` : 'Paid in Full'}
+
+Thank you for purchasing with us!`;
+
+    const waLink = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
+    window.open(waLink, '_blank');
+  }
+
   async function fetchStock(targetShopId = shopId) {
     const { data } = await supabase
       .from('products')
@@ -473,6 +584,12 @@ export default function StaffDashboard() {
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
             >
               🖨️ Print Thermal Receipt (80mm)
+            </button>
+            <button
+              onClick={sendWhatsAppReceipt}
+              className="w-full bg-[#25D366] hover:bg-[#20BA56] text-white font-bold py-3.5 rounded-2xl shadow active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
+            >
+              💬 Send WhatsApp Receipt
             </button>
             <button
               onClick={() => setSaleSuccess(false)}
@@ -970,13 +1087,31 @@ export default function StaffDashboard() {
             <div className="bg-[#F4F1EA] dark:bg-[#1E2427] border border-slate-300/60 dark:border-[#38403F] rounded-3xl p-5 space-y-6 h-fit shadow-sm">
               <div className="flex justify-between items-center border-b border-slate-350/60 dark:border-[#38403F]/60 pb-3">
                 <h3 className="font-bold text-sm text-[#14181B] dark:text-[#EDEAE3] font-mono uppercase tracking-wider">Checkout Cart</h3>
-                <button
-                  onClick={() => setCart([])}
-                  className="text-xs text-[#D9584C] font-bold hover:underline"
-                  disabled={cart.length === 0}
-                >
-                  Clear All
-                </button>
+                <div className="flex gap-2">
+                  {cart.length > 0 && (
+                    <button
+                      onClick={holdCart}
+                      className="text-xs text-amber-600 dark:text-amber-500 font-bold hover:underline"
+                    >
+                      Hold
+                    </button>
+                  )}
+                  {suspendedCart && (
+                    <button
+                      onClick={retrieveCart}
+                      className="text-xs text-cyan-600 dark:text-cyan-400 font-bold hover:underline"
+                    >
+                      Retrieve ({suspendedCart.cart.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setCart([])}
+                    className="text-xs text-[#D9584C] font-bold hover:underline"
+                    disabled={cart.length === 0}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
 
               {/* Items */}
@@ -1009,6 +1144,18 @@ export default function StaffDashboard() {
                             +
                           </button>
                         </div>
+
+                        {/* Inline custom unit price input */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-500">@ ₹</span>
+                          <input
+                            type="number"
+                            value={item.price}
+                            onChange={(e) => updateCartPrice(item.product.id, Number(e.target.value) || 0)}
+                            className="w-14 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded px-1 py-0.5 text-center text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#C1793D]"
+                          />
+                        </div>
+
                         <p className="font-extrabold text-[#14181B] dark:text-[#EDEAE3]">₹{(item.quantity * item.price).toLocaleString()}</p>
                       </div>
                     </div>

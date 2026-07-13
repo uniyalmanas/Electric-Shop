@@ -28,6 +28,10 @@ Niche inventory + finance management for electrical shops, built on Next.js + Su
   or leaked, generating simulated invoices containing real products in your database for seamless testing.
 - **Hinglish Voice Counter Billing** (`app/api/voice-transcribe/route.ts`) — allows cashiers to click the mic button on the counter POS and speak counter orders in mixed Hinglish (e.g. *"Ramesh Electrician ko 10 rolls Polycab 1.5 wire do credit pe"*). Gemini 1.5 Flash transcribes the audio, identifies items/quantities, resolves the customer, and populates the checkout cart in one step.
 - **Voice Command Mock Fallback** — automatically responds with realistic sample Hinglish commands (and pre-populates the billing or stock adjustment panels) if the Gemini STT/parsing API fails or is inactive.
+- **Hands-Free POS (Global Barcode Scanner)** — keydown listener detects scanner keyboard emulation and processes scanned barcodes globally without forcing cashiers to focus search inputs.
+- **Cart Price Overrides** — allows cashiers to inline-edit product prices in the cart to provide custom discounts or deal rates for contractors.
+- **Bill Suspension (Hold / Retrieve)** — cashiers can temporarily hold/freeze active checkout carts to serve other customers and retrieve them when needed.
+- **Official WhatsApp Receipt Gateway** — generates fully formatted text invoices and opens a wa.me redirection link to send direct receipts to customers for free.
 
 ## Setup
 
