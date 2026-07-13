@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
         console.log('Calling Gemini 3.5 Flash with audio file directly for transcription and parsing...');
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
         
-        const prompt = `You are a voice command parser for Gupta Electricals, an Indian retail electrical shop.
+        const prompt = `You are a voice command parser for Senwal Electricals, an Indian retail electrical shop.
 Listen to this spoken Hinglish/Hindi command.
 
 First, transcribe the spoken command exactly as heard in Hindi/Hinglish (e.g. "Ramesh contractor ko 5 roll polycab wire do credit pe" or "adjust in 10 piece switch"). Put this transcription in the "transcription" field.

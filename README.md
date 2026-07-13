@@ -59,7 +59,7 @@ don't belong in a v1:
    licensing — a regulatory undertaking, not a feature. v1 generates GSTR-1/3B-ready
    *reports* for the CA; filing itself stays manual, as it is today.
 3. **Voice input** — **Built!** Fully supported on both frontend and backend using Gemini 1.5 Flash's multimodal audio capabilities, with a development fallback mock mode.
-4. **Email Inbound forwarding** — we have built the OCR upload UI and API, but auto-forwarding invoices from an email address (like `billing@guptaelectricals.com`) to the API via webhooks (e.g., Mailgun/SendGrid inbound parse) is not yet configured.
+4. **Email Inbound forwarding** — we have built the OCR upload UI and API, but auto-forwarding invoices from an email address (like `billing@senwalelectricals.com`) to the API via webhooks (e.g., Mailgun/SendGrid inbound parse) is not yet configured.
 5. **Reconciliation UI** — table exists in the schema; no screen yet for owner to review
    physical-count-vs-system discrepancies.
 

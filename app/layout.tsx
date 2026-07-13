@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Gupta Electricals - Inventory & Finance",
+  title: "Senwal Electricals - Inventory & Finance",
   description: "Niche inventory + finance management web app for electrical shops",
 };
 

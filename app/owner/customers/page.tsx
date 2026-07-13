@@ -134,7 +134,7 @@ export default function CustomersPage() {
 
   // Send ledger reminder over WhatsApp Click-to-Chat
   function triggerReminder(customer: CustomerSummary) {
-    const textMsg = `*CREDIT BALANCE REMINDER - GUPTA ELECTRICALS*\n\nNamaste ${customer.name} ji,\nThis is a friendly reminder that you have an outstanding credit balance of *₹${customer.balanceDue.toLocaleString()}* on your account.\n\nPlease settle the amount at the earliest.\n\nThank you!`;
+    const textMsg = `*CREDIT BALANCE REMINDER - SENWAL ELECTRICALS*\n\nNamaste ${customer.name} ji,\nThis is a friendly reminder that you have an outstanding credit balance of *₹${customer.balanceDue.toLocaleString()}* on your account.\n\nPlease settle the amount at the earliest.\n\nThank you!`;
     navigator.clipboard.writeText(textMsg);
     
     let phoneNum = customer.phone ? customer.phone.replace(/\D/g, '') : '';

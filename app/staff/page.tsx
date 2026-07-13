@@ -184,7 +184,7 @@ export default function StaffDashboard() {
       .map((item: any) => `• ${item.product.name} x ${item.quantity} = ₹${(item.quantity * item.price).toLocaleString()}`)
       .join('\n');
 
-    const message = `*GUPTA ELECTRICALS*
+    const message = `*SENWAL ELECTRICALS*
 Invoice ID: ${lastSaleDetails.id.slice(0, 8).toUpperCase()}
 Date: ${new Date().toLocaleDateString('en-IN')}
 Customer: ${lastSaleDetails.customer?.name || 'Walk-In'}
@@ -610,7 +610,7 @@ Thank you for purchasing with us!`;
         {lastSaleDetails && (
           <div id="print-area" className="hidden text-black bg-white p-2">
             <div className="text-center space-y-1">
-              <h1 className="text-sm font-black tracking-wider uppercase">GUPTA ELECTRICALS</h1>
+              <h1 className="text-sm font-black tracking-wider uppercase">SENWAL ELECTRICALS</h1>
               <p className="text-[10px]">Electrical Equipment, MCBs & Wires</p>
               <p className="text-[9px]">Main Bazar, New Delhi · Ph: 9876543210</p>
               <p className="border-b border-dashed border-black py-0.5" />

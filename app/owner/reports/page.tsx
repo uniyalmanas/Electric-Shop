@@ -181,7 +181,7 @@ export default function ReportsPage() {
   // Export CSV file ready for CA
   function exportCSV() {
     let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'GST CA-READY REPORT (Gupta Electricals)\n';
+    csvContent += 'GST CA-READY REPORT (Senwal Electricals)\n';
     csvContent += `Period: ${startDate} to ${endDate}\n\n`;
 
     // Sales Section

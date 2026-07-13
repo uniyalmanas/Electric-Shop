@@ -6,7 +6,7 @@ Paste this file as context when starting a session in Claude Code, Gemini CLI, o
 
 ## 1. Product Summary & Positioning
 
-A niche inventory + finance management web app **specifically for Indian electrical shops** (e.g., Gupta Electricals / ElectroStock) — not a general store or general Khata app. Built because generic tools (Vyapar, myBillBook, Khatabook) are broad-purpose and don't handle electrical-retail specifics: SKUs sold by meter/box/brand+rating, contractor running-credit, warranty tracking, unbox calculations, and billed vs. unbilled stock.
+A niche inventory + finance management web app **specifically for Indian electrical shops** (e.g., Senwal Electricals / ElectroStock) — not a general store or general Khata app. Built because generic tools (Vyapar, myBillBook, Khatabook) are broad-purpose and don't handle electrical-retail specifics: SKUs sold by meter/box/brand+rating, contractor running-credit, warranty tracking, unbox calculations, and billed vs. unbilled stock.
 
 **Target User Split:**
 - **Owner** — Remote visibility/control: finance margins, dues, payables, low stock, staff management.

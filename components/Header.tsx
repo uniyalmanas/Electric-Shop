@@ -34,7 +34,7 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
         )}
         <div>
           <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
-            <span className="text-[#EDEAE3] font-sans">Gupta</span>
+            <span className="text-[#EDEAE3] font-sans">Senwal</span>
             <span className="text-[#1a120a] font-extrabold border border-[#C1793D] px-2 py-0.5 rounded text-[10px] bg-[#C1793D] tracking-widest font-mono">ELECTRICALS</span>
           </h1>
           <p className="text-[9px] text-[#93A0A3] font-bold uppercase tracking-wider mt-0.5">{title}</p>
