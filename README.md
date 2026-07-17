@@ -41,6 +41,7 @@ cp .env.example .env.local   # fill in your Supabase project URL + anon key
 npm run dev
 ```
 LIVE LINK - https://electrical-shop-app-dun.vercel.app/owner
+Youtube Link - https://www.youtube.com/watch?v=iKQTzETFUH4&t=417s
 
 You'll need a Supabase project. Run `schema.sql` in the SQL editor first.
 
