@@ -32,6 +32,12 @@ Niche inventory + finance management for electrical shops, built on Next.js + Su
 - **Cart Price Overrides** — allows cashiers to inline-edit product prices in the cart to provide custom discounts or deal rates for contractors.
 - **Bill Suspension (Hold / Retrieve)** — cashiers can temporarily hold/freeze active checkout carts to serve other customers and retrieve them when needed.
 - **Official WhatsApp Receipt Gateway** — generates fully formatted text invoices and opens a wa.me redirection link to send direct receipts to customers for free.
+- **Physical Stock Reconciliation Dashboard** (`app/owner/reconciliation/page.tsx`) — allows shop owners to review physical stock logs and sync counts with system inventory.
+- **Multi-Tenant SaaS Onboarding** (`app/signup/page.tsx` & `/api/shops/signup`) — decoupled hardcoded branding, enabling any shop owner to register and start using the app. Uses a server-side signup endpoint using admin privileges to bypass email rate limits or verification blocks.
+- **Dual-Credential Login** (`app/login/page.tsx`) — supports logging in using either a 10-digit mobile number or a registered email address, with fallback phone-to-email resolution (`/api/auth/phone-login`).
+- **Forgot Password Flow & Reset Portal** (`app/login/page.tsx` & `app/reset-password/page.tsx`) — integrates an Account Recovery modal to send reset emails and a dedicated page to securely update user credentials.
+- **Active Roster Locks (Instant Ejection)** (`middleware.ts`) — checks the worker's `active` database flag on every request. If an owner deactivates a staff member, they are instantly signed out, cookies are purged, and they are redirected to login with a deactivation warning.
+- **Workers Directory & Audits Restyling** (`app/owner/staff/page.tsx`) — restyled the staff management page to match the premium dark theme with signature copper gradient highlights, charcoal layouts, and unified modals.
 
 ## Setup
 
@@ -45,10 +51,7 @@ Youtube Link - https://www.youtube.com/watch?v=iKQTzETFUH4&t=417s
 
 You'll need a Supabase project. Run `schema.sql` in the SQL editor first.
 
-For the initial owner + first staff account, insert rows directly into `shops` and
-`workers` after creating their Supabase Auth users (via Supabase dashboard or
-`supabase.auth.admin.createUser`) — there's no signup flow yet since onboarding is
-in-person, per your distribution strategy.
+For registration, you can use the newly implemented public Signup flow (`/signup`) which registers your shop and owner profile instantly.
 
 ## What's intentionally NOT built yet (and why)
 
