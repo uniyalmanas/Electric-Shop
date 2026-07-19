@@ -68,8 +68,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/owner', request.url));
     }
 
-    // Enforce role-based access: staff cannot access /owner/*
-    if (isOwnerPath && role === 'staff') {
+    // Enforce role-based access: ONLY explicitly authenticated owners can access /owner/*
+    if (isOwnerPath && role !== 'owner') {
       return NextResponse.redirect(new URL('/staff', request.url));
     }
   }
