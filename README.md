@@ -72,3 +72,6 @@ about 0.1%. The dominant reason shop owners abandon these apps isn't missing fea
 it's interface confusion and fear of making mistakes. The staff screen in this app is
 built to that constraint on purpose: fewer options, not more, even as you add features
 elsewhere.
+
+## Latest Deployment Note
+- Triggered Vercel redeployment for SaaS onboarding and RLS updates.
