@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Senwal Electricals - Inventory & Finance",
-  description: "Niche inventory + finance management web app for electrical shops",
+  title: "ElectroStock - SaaS Inventory & POS for Electrical Retailers",
+  description: "Niche inventory + finance management SaaS web app for electrical shops",
 };
 
 export default function RootLayout({

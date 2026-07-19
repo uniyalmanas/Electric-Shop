@@ -3,6 +3,29 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(req: NextRequest) {
   const supabase = createServerSupabaseClient();
+
+  // 1. Authenticate user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Please log in' }, { status: 401 });
+  }
+
+  // 2. Fetch worker and verify role is owner
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id, role, shop_id')
+    .eq('auth_id', user.id)
+    .single();
+
+  if (!worker) {
+    return NextResponse.json({ error: 'Forbidden: Worker profile not found' }, { status: 403 });
+  }
+
+  if (worker.role !== 'owner') {
+    return NextResponse.json({ error: 'Forbidden: Only owners can manage purchases' }, { status: 403 });
+  }
+
+  const workerId = worker.id;
   const body = await req.json();
 
   const { supplier_id, has_bill, supplier_invoice_number, total_amount, amount_paid, items } = body;
@@ -10,13 +33,6 @@ export async function POST(req: NextRequest) {
   if (!supplier_id || !total_amount || !items || !items.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
-
-  // Get active worker for attribution in bypassed auth mode
-  const { data: workers } = await supabase.from('workers').select('id').limit(1);
-  if (!workers || workers.length === 0) {
-    return NextResponse.json({ error: 'Requires at least one worker row in database.' }, { status: 400 });
-  }
-  const workerId = workers[0].id;
 
   const totalAmountNum = Number(total_amount);
   const amountPaidNum = Number(amount_paid) || 0;
@@ -34,6 +50,19 @@ export async function POST(req: NextRequest) {
   }
 
   const shopId = supplierInfo.shop_id;
+
+  if (shopId !== worker.shop_id) {
+    return NextResponse.json({ error: 'Forbidden: Supplier does not belong to your shop' }, { status: 403 });
+  }
+
+  // Fetch default location (Counter) for this shop
+  const { data: defaultLoc } = await supabase
+    .from('locations')
+    .select('id')
+    .eq('shop_id', shopId)
+    .eq('is_default', true)
+    .single();
+  const defaultLocId = defaultLoc?.id;
 
   // 1. Insert Purchase
   const { data: purchase, error: purchaseErr } = await supabase
@@ -93,11 +122,29 @@ export async function POST(req: NextRequest) {
         newWac = ((currentStock * currentCost) + (qtyNum * costNum)) / newStock;
       }
 
-      // Update product current_stock and cost_price
+      // Fetch stock at default location
+      const { data: stockRow } = await supabase
+        .from('product_stocks')
+        .select('current_stock')
+        .eq('product_id', product_id)
+        .eq('location_id', defaultLocId)
+        .single();
+      const currentLocStock = stockRow ? Number(stockRow.current_stock) : 0;
+
+      // Update product_stocks at default location
+      await supabase
+        .from('product_stocks')
+        .upsert({
+          shop_id: shopId,
+          product_id,
+          location_id: defaultLocId,
+          current_stock: currentLocStock + qtyNum
+        }, { onConflict: 'product_id, location_id' });
+
+      // Update product cost_price
       await supabase
         .from('products')
         .update({
-          current_stock: newStock,
           cost_price: Number(newWac.toFixed(2)),
         })
         .eq('id', product_id);
@@ -113,6 +160,7 @@ export async function POST(req: NextRequest) {
       reason: 'purchase',
       reference_type: 'purchase',
       reference_id: purchase.id,
+      location_id: defaultLocId,
       entry_method: 'manual',
     });
   }
@@ -171,6 +219,15 @@ export async function PUT(req: NextRequest) {
 
   const shopId = purchase.shop_id;
 
+  // Fetch default location (Counter) for this shop
+  const { data: defaultLoc } = await supabase
+    .from('locations')
+    .select('id')
+    .eq('shop_id', shopId)
+    .eq('is_default', true)
+    .single();
+  const defaultLocId = defaultLoc?.id;
+
   // Process items mapping
   for (const item of items) {
     const { item_id, product_id, quantity, cost_price } = item;
@@ -200,10 +257,29 @@ export async function PUT(req: NextRequest) {
         newWac = ((currentStock * currentCost) + (qtyNum * costNum)) / newStock;
       }
 
+      // Fetch stock at default location
+      const { data: stockRow } = await supabase
+        .from('product_stocks')
+        .select('current_stock')
+        .eq('product_id', product_id)
+        .eq('location_id', defaultLocId)
+        .single();
+      const currentLocStock = stockRow ? Number(stockRow.current_stock) : 0;
+
+      // Update product_stocks at default location
+      await supabase
+        .from('product_stocks')
+        .upsert({
+          shop_id: shopId,
+          product_id,
+          location_id: defaultLocId,
+          current_stock: currentLocStock + qtyNum
+        }, { onConflict: 'product_id, location_id' });
+
+      // Update product cost_price
       await supabase
         .from('products')
         .update({
-          current_stock: newStock,
           cost_price: Number(newWac.toFixed(2)),
         })
         .eq('id', product_id);
@@ -219,6 +295,7 @@ export async function PUT(req: NextRequest) {
       reason: 'purchase',
       reference_type: 'purchase',
       reference_id: purchase_id,
+      location_id: defaultLocId,
       entry_method: 'manual',
     });
   }

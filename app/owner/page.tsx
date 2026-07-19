@@ -19,6 +19,13 @@ export default function OwnerDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Shop Settings States
+  const [shopId, setShopId] = useState('');
+  const [shopName, setShopName] = useState('');
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newShopName, setNewShopName] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+
   useEffect(() => {
     async function loadSummary() {
       const todayStr = new Date().toISOString().split('T')[0];
@@ -94,6 +101,24 @@ export default function OwnerDashboard() {
         count,
       })).sort((a, b) => b.count - a.count);
 
+      // Fetch shop details for active user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: worker } = await supabase
+          .from('workers')
+          .select('shop_id, shops(name)')
+          .eq('auth_id', user.id)
+          .single();
+        if (worker && worker.shop_id) {
+          setShopId(worker.shop_id);
+          if (worker.shops) {
+            const name = (worker.shops as any).name;
+            setShopName(name);
+            setNewShopName(name);
+          }
+        }
+      }
+
       setSummary({
         todaySales,
         todayCashIn,
@@ -107,6 +132,32 @@ export default function OwnerDashboard() {
     }
     loadSummary();
   }, []);
+
+  async function handleUpdateShopName(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newShopName.trim() || !shopId) return;
+
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('shops')
+        .update({ name: newShopName.trim() })
+        .eq('id', shopId);
+
+      if (error) {
+        alert('Error updating shop name: ' + error.message);
+      } else {
+        setShopName(newShopName.trim());
+        localStorage.setItem('electrostock_shop_name', newShopName.trim());
+        setShowSettingsModal(false);
+        window.location.reload();
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#EDEAE3] dark:bg-[#14181B] text-[#14181B] dark:text-[#EDEAE3] flex flex-col transition-colors duration-200 grid-bg relative overflow-hidden">
@@ -204,10 +255,68 @@ export default function OwnerDashboard() {
             <NavLink href="/owner/purchases/review" label="Invoice OCR Ingestion" description="Scan invoice images or PDFs via Gemini OCR, map extracted line items, and update stock counts." icon="🧾" badge="Gemini AI" />
             <NavLink href="/owner/expenses" label="Expenses & P&L Statements" description="Log monthly office operational expenses (rent, wage bills, utility costs) and inspect net profit margins." icon="📉" badge="Finance Log" />
             <NavLink href="/owner/reports" label="CA GST Reports" description="Compile outward tax invoices (GSTR-1) and ITC purchases (GSTR-3B) into standard CA spreadsheets." icon="📊" badge="GSTR-1/3B Ready" />
+             <NavLink href="/owner/reconciliation" label="Stock Reconciliation" description="Audit physical counts, view shrinkage valuation losses, track discrepancy history, and adjust system stock." icon="🔍" badge="Loss Audit" />
             <NavLink href="/owner/staff" label="Staff Roster & Audits" description="Register counter workers, deactivate staff access, and trace historical database audit trails." icon="👥" badge="Logs" />
+            
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="block text-left relative rounded-2xl bg-[#F4F1EA] dark:bg-[#1E2427] border border-slate-300/60 dark:border-[#38403F] p-6 transition-all duration-200 hover:border-[#C1793D] dark:hover:border-[#C1793D] hover:shadow-md group overflow-hidden"
+            >
+              <span className="absolute top-3 right-3 text-[8px] font-extrabold tracking-widest text-[#E0954F] bg-[#C1793D]/10 border border-[#C1793D]/25 px-2 py-0.5 rounded-full uppercase font-mono">
+                Brand Profile
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xl">⚙️</span>
+                <h4 className="text-lg font-bold text-[#14181B] dark:text-[#EDEAE3] group-hover:text-[#E0954F] transition-colors">Shop Settings</h4>
+              </div>
+              <p className="text-[#707C7F] dark:text-[#93A0A3] text-xs mt-2 leading-relaxed font-medium">Update your shop name, configure billing details, and edit your SaaS store brand.</p>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* --- SHOP SETTINGS MODAL --- */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 text-slate-800 dark:text-slate-100">
+            <div className="bg-slate-100 dark:bg-slate-800 dark:bg-slate-850 p-6 border-b border-slate-200 dark:border-slate-850 flex justify-between items-center">
+              <h2 className="text-xl font-bold">Shop Profile Settings</h2>
+              <button onClick={() => setShowSettingsModal(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-100 text-2xl font-bold">×</button>
+            </div>
+
+            <form onSubmit={handleUpdateShopName} className="p-6 space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Active Shop Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newShopName}
+                  onChange={(e) => setNewShopName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#14181B] border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none"
+                  placeholder="e.g. Apex Lights"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 dark:border-slate-850 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(false)}
+                  className="bg-slate-200 hover:bg-slate-350 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-750 dark:text-slate-200 font-semibold px-4 py-2.5 rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="bg-amazon-yellow hover:bg-amazon-yellow/90 border border-amazon-yellow text-amazon-black font-bold px-5 py-2.5 rounded-xl shadow text-xs disabled:opacity-50"
+                >
+                  {savingSettings ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -34,6 +34,8 @@ export default function ReportsPage() {
     totalPurchases: 0,
   });
 
+  const [shopName, setShopName] = useState<string>('ElectroStock');
+
   useEffect(() => {
     // Default date range: current month
     const now = new Date();
@@ -42,6 +44,34 @@ export default function ReportsPage() {
     setStartDate(firstDay);
     setEndDate(lastDay);
     loadData(firstDay, lastDay);
+
+    // Synchronously check localStorage on the client to avoid flash
+    const cached = localStorage.getItem('electrostock_shop_name');
+    if (cached) {
+      setShopName(cached);
+    }
+    
+    async function loadShop() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: worker } = await supabase
+            .from('workers')
+            .select('shop_id, shops(name)')
+            .eq('auth_id', user.id)
+            .single();
+          
+          if (worker && worker.shops) {
+            const name = (worker.shops as any).name;
+            setShopName(name);
+            localStorage.setItem('electrostock_shop_name', name);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching shop name in reports:', err);
+      }
+    }
+    loadShop();
   }, []);
 
   async function loadData(start = startDate, end = endDate) {
@@ -181,7 +211,7 @@ export default function ReportsPage() {
   // Export CSV file ready for CA
   function exportCSV() {
     let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'GST CA-READY REPORT (Senwal Electricals)\n';
+    csvContent += `GST CA-READY REPORT (${shopName})\n`;
     csvContent += `Period: ${startDate} to ${endDate}\n\n`;
 
     // Sales Section

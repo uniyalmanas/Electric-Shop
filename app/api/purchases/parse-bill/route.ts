@@ -3,6 +3,24 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(req: NextRequest) {
   const supabase = createServerSupabaseClient();
+
+  // 1. Authenticate user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Please log in' }, { status: 401 });
+  }
+
+  // 2. Fetch worker and verify role is owner
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('role')
+    .eq('auth_id', user.id)
+    .single();
+
+  if (!worker || worker.role !== 'owner') {
+    return NextResponse.json({ error: 'Forbidden: Only owners can parse supplier bills' }, { status: 403 });
+  }
+
   const apiKey = process.env.GOOGLE_API_KEY;
 
   try {

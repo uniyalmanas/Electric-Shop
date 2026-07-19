@@ -35,13 +35,23 @@ export default function StaffManagementPage() {
   const [workerName, setWorkerName] = useState('');
   const [workerPhone, setWorkerPhone] = useState('');
   const [workerRole, setWorkerRole] = useState<'owner' | 'staff'>('staff');
+  const [workerPassword, setWorkerPassword] = useState('');
+  const [submittingWorker, setSubmittingWorker] = useState(false);
 
   useEffect(() => {
     async function init() {
-      const { data: shops } = await supabase.from('shops').select('id').limit(1);
-      if (shops && shops.length > 0) {
-        setShopId(shops[0].id);
-        fetchData(shops[0].id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: worker } = await supabase
+          .from('workers')
+          .select('shop_id')
+          .eq('auth_id', user.id)
+          .single();
+        
+        if (worker && worker.shop_id) {
+          setShopId(worker.shop_id);
+          fetchData(worker.shop_id);
+        }
       } else {
         setLoading(false);
       }
@@ -77,26 +87,39 @@ export default function StaffManagementPage() {
   // Handle Add Worker
   async function handleAddWorker(e: React.FormEvent) {
     e.preventDefault();
-    if (!workerName || !shopId) return;
+    if (!workerName || !workerPhone || !workerPassword || !shopId) {
+      alert('Please fill out all fields.');
+      return;
+    }
 
-    // Direct insertion bypassing auth for development mode
-    const { error } = await supabase.from('workers').insert({
-      shop_id: shopId,
-      auth_id: '00000000-0000-0000-0000-000000000000', // Mock auth UUID since auth is bypassed
-      name: workerName,
-      phone: workerPhone || null,
-      role: workerRole,
-      active: true,
-    });
+    setSubmittingWorker(true);
+    try {
+      const res = await fetch('/api/workers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: workerName,
+          phone: workerPhone,
+          password: workerPassword,
+          role: workerRole,
+        }),
+      });
 
-    if (error) {
-      alert('Error registering worker: ' + error.message);
-    } else {
-      setShowAddModal(false);
-      setWorkerName('');
-      setWorkerPhone('');
-      setWorkerRole('staff');
-      fetchData();
+      const data = await res.json();
+      if (!res.ok) {
+        alert('Error registering worker: ' + data.error);
+      } else {
+        setShowAddModal(false);
+        setWorkerName('');
+        setWorkerPhone('');
+        setWorkerPassword('');
+        setWorkerRole('staff');
+        fetchData();
+      }
+    } catch (err: any) {
+      alert('Error registering worker: ' + err.message);
+    } finally {
+      setSubmittingWorker(false);
     }
   }
 
@@ -250,15 +273,16 @@ export default function StaffManagementPage() {
                   required
                   value={workerName}
                   onChange={(e) => setWorkerName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none"
                   placeholder="e.g. Anil Kumar (Sales counter)"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Phone Number</label>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Phone Number (For Login)</label>
                 <input
                   type="tel"
+                  required
                   value={workerPhone}
                   onChange={(e) => setWorkerPhone(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none"
@@ -267,11 +291,23 @@ export default function StaffManagementPage() {
               </div>
 
               <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Login Password</label>
+                <input
+                  type="text"
+                  required
+                  value={workerPassword}
+                  onChange={(e) => setWorkerPassword(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none"
+                  placeholder="Min 6 characters"
+                />
+              </div>
+
+              <div>
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Shop Role</label>
                 <select
                   value={workerRole}
                   onChange={(e) => setWorkerRole(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none text-xs"
                 >
                   <option value="staff">Staff Member (Counter access only)</option>
                   <option value="owner">Co-Owner (Full access)</option>
@@ -288,9 +324,10 @@ export default function StaffManagementPage() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-amazon-yellow hover:bg-amazon-yellow/90 border border-amazon-yellow text-amazon-black font-bold px-5 py-2.5 rounded-xl shadow text-xs"
+                  disabled={submittingWorker}
+                  className="bg-amazon-yellow hover:bg-amazon-yellow/90 border border-amazon-yellow text-amazon-black font-bold px-5 py-2.5 rounded-xl shadow text-xs disabled:opacity-50"
                 >
-                  Register Staff
+                  {submittingWorker ? 'Registering...' : 'Register Staff'}
                 </button>
               </div>
             </form>

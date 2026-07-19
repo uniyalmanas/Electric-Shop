@@ -36,8 +36,8 @@ interface ReconciliationLog {
 export default function InventoryPage() {
   const supabase = createClient();
   
-  // Navigation tabs: 'inventory' | 'reorder' | 'audit'
-  const [activeTab, setActiveTab] = useState<'inventory' | 'reorder' | 'audit'>('inventory');
+  // Navigation tabs: 'inventory' | 'reorder' | 'audit' | 'locations'
+  const [activeTab, setActiveTab] = useState<'inventory' | 'reorder' | 'audit' | 'locations'>('inventory');
 
   const [products, setProducts] = useState<Product[]>([]);
   const [shopId, setShopId] = useState<string>('');
@@ -56,6 +56,22 @@ export default function InventoryPage() {
   const [selectedAuditProduct, setSelectedAuditProduct] = useState<Product | null>(null);
   const [physicalCount, setPhysicalCount] = useState('');
   const [auditNotes, setAuditNotes] = useState('');
+
+  // Locations / Godowns management states
+  const [locations, setLocations] = useState<{ id: string; name: string; is_default: boolean }[]>([]);
+  const [productStocks, setProductStocks] = useState<{ id: string; product_id: string; location_id: string; current_stock: number }[]>([]);
+  const [selectedLocFilter, setSelectedLocFilter] = useState<string>('');
+  const [newLocationName, setNewLocationName] = useState('');
+  const [isAddingLocation, setIsAddingLocation] = useState(false);
+
+  // Transfer stock states
+  const [transferData, setTransferData] = useState({
+    product_id: '',
+    from_location_id: '',
+    to_location_id: '',
+    quantity: '',
+  });
+  const [isTransferring, setIsTransferring] = useState(false);
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -97,16 +113,147 @@ export default function InventoryPage() {
     }
 
     async function init() {
-      const { data: shops } = await supabase.from('shops').select('id').limit(1);
-      if (shops && shops.length > 0) {
-        setShopId(shops[0].id);
-        fetchProducts(shops[0].id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: worker } = await supabase
+          .from('workers')
+          .select('shop_id')
+          .eq('auth_id', user.id)
+          .single();
+        
+        if (worker && worker.shop_id) {
+          setShopId(worker.shop_id);
+          fetchProducts(worker.shop_id);
+          
+          // Fetch locations and stocks on init
+          const { data: locs } = await supabase
+            .from('locations')
+            .select('*')
+            .eq('shop_id', worker.shop_id)
+            .order('name');
+          setLocations(locs || []);
+          if (locs && locs.length > 0) {
+            setSelectedLocFilter(locs[0].id);
+          }
+
+          const { data: stocks } = await supabase
+            .from('product_stocks')
+            .select('*')
+            .eq('shop_id', worker.shop_id);
+          setProductStocks(stocks || []);
+        }
       } else {
         setLoading(false);
       }
     }
     init();
   }, []);
+
+  async function fetchLocations() {
+    if (!shopId) return;
+    const { data: locs } = await supabase
+      .from('locations')
+      .select('*')
+      .eq('shop_id', shopId)
+      .order('name');
+    setLocations(locs || []);
+    if (locs && locs.length > 0 && !selectedLocFilter) {
+      setSelectedLocFilter(locs[0].id);
+    }
+  }
+
+  async function fetchProductStocks() {
+    if (!shopId) return;
+    const { data: stocks } = await supabase
+      .from('product_stocks')
+      .select('*')
+      .eq('shop_id', shopId);
+    setProductStocks(stocks || []);
+  }
+
+  async function handleAddLocation(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newLocationName.trim() || !shopId) return;
+
+    setIsAddingLocation(true);
+    const { data, error } = await supabase
+      .from('locations')
+      .insert({
+        shop_id: shopId,
+        name: newLocationName.trim(),
+        is_default: false,
+      })
+      .select()
+      .single();
+
+    setIsAddingLocation(false);
+    if (error) {
+      alert('Error creating location: ' + error.message);
+    } else {
+      setNewLocationName('');
+      alert('✅ Location registered successfully!');
+      fetchLocations();
+    }
+  }
+
+  async function handleTransferSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!transferData.product_id || !transferData.from_location_id || !transferData.to_location_id || !transferData.quantity) {
+      alert('Please fill out all fields.');
+      return;
+    }
+    const qty = Number(transferData.quantity);
+    if (qty <= 0) {
+      alert('Quantity must be greater than zero.');
+      return;
+    }
+    if (transferData.from_location_id === transferData.to_location_id) {
+      alert('Source and destination locations must be different.');
+      return;
+    }
+
+    const { data: workers } = await supabase.from('workers').select('id').limit(1);
+    if (!workers || workers.length === 0) {
+      alert('No staff worker registered in database to attribute log entry.');
+      return;
+    }
+    const workerId = workers[0].id;
+
+    setIsTransferring(true);
+
+    const res = await fetch('/api/stock-movements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        product_id: transferData.product_id,
+        worker_id: workerId,
+        quantity: qty,
+        direction: 'out',
+        reason: 'transfer',
+        location_id: transferData.from_location_id,
+        to_location_id: transferData.to_location_id,
+      }),
+    });
+
+    const result = await res.json();
+    setIsTransferring(false);
+
+    if (result.error) {
+      alert('Transfer failed: ' + result.error);
+    } else {
+      alert('✅ Stock successfully transferred between locations!');
+      setTransferData({
+        product_id: '',
+        from_location_id: '',
+        to_location_id: '',
+        quantity: '',
+      });
+      fetchProducts();
+      fetchProductStocks();
+    }
+  }
 
   async function fetchProducts(targetShopId = shopId) {
     setLoading(true);
@@ -468,7 +615,7 @@ export default function InventoryPage() {
 
         {/* Tab Switcher & Quick Add Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="bg-[#1E2427] p-1 rounded-xl flex gap-1 border border-[#38403F] shadow-sm w-full md:max-w-xl">
+          <div className="bg-[#1E2427] p-1 rounded-xl flex gap-1 border border-[#38403F] shadow-sm w-full md:max-w-3xl">
             <button
               onClick={() => setActiveTab('inventory')}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
@@ -498,6 +645,16 @@ export default function InventoryPage() {
               }`}
             >
               🔍 Physical Audit Logs
+            </button>
+            <button
+              onClick={() => { setActiveTab('locations'); fetchLocations(); fetchProductStocks(); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                activeTab === 'locations' 
+                  ? 'bg-[#C1793D] text-[#1a120a]' 
+                  : 'text-[#93A0A3] hover:text-[#EDEAE3]'
+              }`}
+            >
+              🏢 Godowns & Transfers
             </button>
           </div>
 
@@ -928,6 +1085,206 @@ export default function InventoryPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 4: GODOWN LOCATIONS & TRANSFERS --- */}
+        {activeTab === 'locations' && (
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Left Panel: Register & Transfer */}
+            <div className="space-y-6">
+              {/* Stock Transfer Form */}
+              <div className="bg-[#1E2427] border border-[#38403F] rounded-3xl p-6 space-y-4 shadow-sm relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#C1793D]" />
+                <div>
+                  <h3 className="font-bold text-base text-[#EDEAE3]">Transfer Stock</h3>
+                  <p className="text-[#93A0A3] text-xs mt-1">Move products between your retail counter and warehouse godowns.</p>
+                </div>
+
+                <form onSubmit={handleTransferSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-[9px] font-bold text-[#93A0A3] uppercase tracking-wider mb-2">Select Item</label>
+                    <select
+                      value={transferData.product_id}
+                      onChange={(e) => setTransferData({ ...transferData, product_id: e.target.value })}
+                      className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-3 py-3 text-[#EDEAE3] text-xs focus:outline-none focus:border-[#C1793D]"
+                      required
+                    >
+                      <option value="">-- Choose Product --</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.brand || 'Generic'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {transferData.product_id && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#93A0A3] uppercase tracking-wider mb-2">From Location</label>
+                        <select
+                          value={transferData.from_location_id}
+                          onChange={(e) => setTransferData({ ...transferData, from_location_id: e.target.value })}
+                          className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-3 py-3 text-[#EDEAE3] text-xs focus:outline-none focus:border-[#C1793D]"
+                          required
+                        >
+                          <option value="">-- Source --</option>
+                          {locations.map((loc) => {
+                            const stockRow = productStocks.find(s => s.product_id === transferData.product_id && s.location_id === loc.id);
+                            const currentLocStock = stockRow ? Number(stockRow.current_stock) : 0;
+                            return (
+                              <option key={loc.id} value={loc.id}>
+                                {loc.name} ({currentLocStock} available)
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#93A0A3] uppercase tracking-wider mb-2">To Location</label>
+                        <select
+                          value={transferData.to_location_id}
+                          onChange={(e) => setTransferData({ ...transferData, to_location_id: e.target.value })}
+                          className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-3 py-3 text-[#EDEAE3] text-xs focus:outline-none focus:border-[#C1793D]"
+                          required
+                        >
+                          <option value="">-- Destination --</option>
+                          {locations
+                            .filter(loc => loc.id !== transferData.from_location_id)
+                            .map((loc) => (
+                              <option key={loc.id} value={loc.id}>
+                                {loc.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[9px] font-bold text-[#93A0A3] uppercase tracking-wider mb-2">Transfer Quantity</label>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      value={transferData.quantity}
+                      onChange={(e) => setTransferData({ ...transferData, quantity: e.target.value })}
+                      className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-3 py-3 text-[#EDEAE3] text-center text-xl font-bold focus:outline-none focus:border-[#C1793D]"
+                      placeholder="0"
+                      disabled={!transferData.product_id}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isTransferring || !transferData.product_id || !transferData.quantity}
+                    className="w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-bold py-3.5 rounded-xl disabled:opacity-40 transition-colors text-xs active:scale-95 shadow-sm"
+                  >
+                    {isTransferring ? 'Processing...' : 'Confirm Transfer'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Add Location Form */}
+              <div className="bg-[#1E2427] border border-[#38403F] rounded-3xl p-6 space-y-4 shadow-sm relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#4FAE7A]" />
+                <div>
+                  <h3 className="font-bold text-base text-[#EDEAE3]">Register New Location</h3>
+                  <p className="text-[#93A0A3] text-xs mt-1">Create a new godown, warehouse, or retail counter location.</p>
+                </div>
+
+                <form onSubmit={handleAddLocation} className="space-y-4">
+                  <div>
+                    <label className="block text-[9px] font-bold text-[#93A0A3] uppercase tracking-wider mb-2">Location Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newLocationName}
+                      onChange={(e) => setNewLocationName(e.target.value)}
+                      className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-3 py-3 text-[#EDEAE3] text-xs focus:outline-none focus:border-[#C1793D]"
+                      placeholder="e.g. Godown B, Warehouse 2"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isAddingLocation || !newLocationName.trim()}
+                    className="w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-bold py-3 rounded-xl disabled:opacity-40 transition-colors text-xs active:scale-95 shadow-sm"
+                  >
+                    {isAddingLocation ? 'Creating...' : 'Register Location'}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Right Panel: Location Stock List */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h4 className="font-bold text-xs text-[#93A0A3] uppercase tracking-widest">Godown Location Inventory Stocks</h4>
+                
+                {/* Location selector tabs */}
+                <div className="flex flex-wrap gap-1.5 bg-[#14181B] p-1 rounded-xl border border-[#38403F]">
+                  {locations.map((loc) => (
+                    <button
+                      key={loc.id}
+                      onClick={() => setSelectedLocFilter(loc.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        selectedLocFilter === loc.id
+                          ? 'bg-[#C1793D] text-[#1a120a]'
+                          : 'text-[#93A0A3] hover:text-[#EDEAE3]'
+                      }`}
+                    >
+                      {loc.name} {loc.is_default && '⭐️'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stock inventory table */}
+              <div className="bg-[#1E2427] border border-[#38403F] rounded-3xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-[#14181B] text-[#93A0A3] font-bold uppercase tracking-wider border-b border-[#38403F]">
+                        <th className="py-3.5 px-4">Brand</th>
+                        <th className="py-3.5 px-4">Product Name</th>
+                        <th className="py-3.5 px-4 text-center">Local Stock</th>
+                        <th className="py-3.5 px-4 text-center">Global Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#38403F]/60">
+                      {products.map((p) => {
+                        const stockRow = productStocks.find(s => s.product_id === p.id && s.location_id === selectedLocFilter);
+                        const localStock = stockRow ? Number(stockRow.current_stock) : 0;
+                        const isLow = localStock < p.reorder_threshold;
+
+                        return (
+                          <tr key={p.id} className="hover:bg-[#14181B]/40 transition-colors">
+                            <td className="py-3 px-4 font-bold text-[#E0954F] font-mono text-[10px]">
+                              {p.brand || 'Generic'}
+                            </td>
+                            <td className="py-3 px-4">
+                              <p className="font-bold text-[#EDEAE3]">{p.name}</p>
+                              {p.rating && <p className="text-[10px] text-[#93A0A3] mt-0.5">{p.rating}</p>}
+                            </td>
+                            <td className={`py-3 px-4 text-center font-mono font-bold ${
+                              localStock === 0 ? 'text-[#D9584C]' : isLow ? 'text-[#F0AD3E]' : 'text-[#4FAE7A]'
+                            }`}>
+                              {localStock} {p.unit_type}s
+                            </td>
+                            <td className="py-3 px-4 text-center font-mono text-[#93A0A3]">
+                              {p.current_stock} {p.unit_type}s
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -46,10 +46,18 @@ export default function ExpensesPage() {
     setEndDate(lastDay);
 
     async function init() {
-      const { data: shops } = await supabase.from('shops').select('id').limit(1);
-      if (shops && shops.length > 0) {
-        setShopId(shops[0].id);
-        fetchData(shops[0].id, firstDay, lastDay);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: worker } = await supabase
+          .from('workers')
+          .select('shop_id')
+          .eq('auth_id', user.id)
+          .single();
+        
+        if (worker && worker.shop_id) {
+          setShopId(worker.shop_id);
+          fetchData(worker.shop_id, firstDay, lastDay);
+        }
       } else {
         setLoading(false);
       }

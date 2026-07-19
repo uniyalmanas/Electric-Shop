@@ -17,10 +17,13 @@ export async function POST(req: NextRequest) {
 
     // Fetch database catalog products and customers to match
     const supabase = createServerSupabaseClient();
-    const [{ data: products }, { data: customers }] = await Promise.all([
+    const [{ data: products }, { data: customers }, { data: shops }] = await Promise.all([
       supabase.from('products').select('id, name, brand, rating, current_stock, unit_type, selling_price, cost_price'),
       supabase.from('customers').select('id, name, type'),
+      supabase.from('shops').select('name').limit(1),
     ]);
+
+    const shopName = shops && shops.length > 0 ? shops[0].name : 'ElectroStock';
 
     const catalogProducts = (products || []).map(p => ({
       id: p.id,
@@ -46,9 +49,9 @@ export async function POST(req: NextRequest) {
         console.log('Calling Gemini 3.5 Flash with audio file directly for transcription and parsing...');
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
         
-        const prompt = `You are a voice command parser for Senwal Electricals, an Indian retail electrical shop.
+        const prompt = `You are a voice command parser for ${shopName}, an Indian retail electrical shop.
 Listen to this spoken Hinglish/Hindi command.
-
+ 
 First, transcribe the spoken command exactly as heard in Hindi/Hinglish (e.g. "Ramesh contractor ko 5 roll polycab wire do credit pe" or "adjust in 10 piece switch"). Put this transcription in the "transcription" field.
 
 Second, match the items, quantity, actions, and contractor in the spoken sentence against our product catalog and customer list.

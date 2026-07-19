@@ -79,13 +79,34 @@ export default function StaffDashboard() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
+  const [shopName, setShopName] = useState<string>('ElectroStock');
+
   useEffect(() => {
+    // Synchronously check localStorage on the client to avoid flash
+    const cached = localStorage.getItem('electrostock_shop_name');
+    if (cached) {
+      setShopName(cached);
+    }
+
     async function init() {
-      const { data: shops } = await supabase.from('shops').select('id').limit(1);
-      if (shops && shops.length > 0) {
-        setShopId(shops[0].id);
-        fetchStock(shops[0].id);
-        fetchCustomers(shops[0].id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: worker } = await supabase
+          .from('workers')
+          .select('shop_id, shops(name)')
+          .eq('auth_id', user.id)
+          .single();
+        
+        if (worker && worker.shop_id) {
+          setShopId(worker.shop_id);
+          if (worker.shops) {
+            const name = (worker.shops as any).name;
+            setShopName(name);
+            localStorage.setItem('electrostock_shop_name', name);
+          }
+          fetchStock(worker.shop_id);
+          fetchCustomers(worker.shop_id);
+        }
       }
     }
     init();
@@ -184,7 +205,7 @@ export default function StaffDashboard() {
       .map((item: any) => `• ${item.product.name} x ${item.quantity} = ₹${(item.quantity * item.price).toLocaleString()}`)
       .join('\n');
 
-    const message = `*SENWAL ELECTRICALS*
+    const message = `*${shopName.toUpperCase()}*
 Invoice ID: ${lastSaleDetails.id.slice(0, 8).toUpperCase()}
 Date: ${new Date().toLocaleDateString('en-IN')}
 Customer: ${lastSaleDetails.customer?.name || 'Walk-In'}
@@ -615,7 +636,7 @@ Thank you for purchasing with us!`;
         {lastSaleDetails && (
           <div id="print-area" className="hidden text-black bg-white p-2">
             <div className="text-center space-y-1">
-              <h1 className="text-sm font-black tracking-wider uppercase">SENWAL ELECTRICALS</h1>
+              <h1 className="text-sm font-black tracking-wider uppercase">{shopName}</h1>
               <p className="text-[10px]">Electrical Equipment, MCBs & Wires</p>
               <p className="text-[9px]">Main Bazar, New Delhi · Ph: 9876543210</p>
               <p className="border-b border-dashed border-black py-0.5" />

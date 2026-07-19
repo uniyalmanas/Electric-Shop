@@ -24,6 +24,15 @@ create table workers (
   unique (shop_id, auth_id)
 );
 
+-- ---------- LOCATIONS (godowns/warehouses) ----------
+create table locations (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references shops(id) on delete cascade,
+  name text not null,
+  is_default boolean default false,
+  created_at timestamptz default now()
+);
+
 -- ---------- PRODUCTS (electrical-specific SKU model) ----------
 create table products (
   id uuid primary key default gen_random_uuid(),
@@ -42,6 +51,17 @@ create table products (
   current_stock numeric(10,2) not null default 0,
   reorder_threshold numeric(10,2) default 0,
   created_at timestamptz default now()
+);
+
+-- ---------- PRODUCT STOCKS (location-specific stock tracking) ----------
+create table product_stocks (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references shops(id) on delete cascade,
+  product_id uuid not null references products(id) on delete cascade,
+  location_id uuid not null references locations(id) on delete cascade,
+  current_stock numeric(10,2) not null default 0,
+  created_at timestamptz default now(),
+  unique (product_id, location_id)
 );
 
 -- ---------- CUSTOMERS ----------
@@ -124,6 +144,8 @@ create table stock_movements (
     ('sale','purchase','internal_use','damage','return','transfer','reconciliation_adjustment')),
   reference_type text,      -- 'sale' | 'purchase' | null
   reference_id uuid,
+  location_id uuid references locations(id),
+  to_location_id uuid references locations(id),
   entry_method text default 'manual' check (entry_method in ('manual','voice','email_pdf')),
   created_at timestamptz default now()
 );
@@ -185,6 +207,8 @@ create table reconciliation_logs (
 alter table shops enable row level security;
 alter table workers enable row level security;
 alter table products enable row level security;
+alter table locations enable row level security;
+alter table product_stocks enable row level security;
 alter table customers enable row level security;
 alter table suppliers enable row level security;
 alter table sales enable row level security;
@@ -217,9 +241,11 @@ as $$
   );
 $$;
 
--- SHOPS: owner sees/manages their own shop
+-- SHOPS: owner sees/manages their own shop; members can view details
 create policy shop_owner_access on shops
   for all using (owner_auth_id = auth.uid());
+create policy shop_member_select on shops
+  for select using (is_shop_member(id));
 
 -- WORKERS: any active member of the shop can see the worker list (for attribution);
 -- only owner can insert/update/delete staff
@@ -227,6 +253,8 @@ create policy workers_select on workers
   for select using (is_shop_member(shop_id));
 create policy workers_owner_write on workers
   for insert with check (current_worker_role(shop_id) = 'owner');
+create policy workers_owner_bootstrap on workers
+  for insert with check (exists (select 1 from shops where id = shop_id and owner_auth_id = auth.uid()));
 create policy workers_owner_update on workers
   for update using (current_worker_role(shop_id) = 'owner');
 create policy workers_owner_delete on workers
@@ -267,6 +295,80 @@ create policy reconciliation_insert on reconciliation_logs
   for insert with check (is_shop_member(shop_id));
 create policy reconciliation_select on reconciliation_logs
   for select using (is_shop_member(shop_id));
+
+-- LOCATIONS & PRODUCT STOCKS: all shop members can access
+create policy locations_shop_access on locations for all using (is_shop_member(shop_id));
+create policy product_stocks_shop_access on product_stocks for all using (is_shop_member(shop_id));
+
+-- Trigger to keep products.current_stock updated automatically
+create or replace function update_product_total_stock()
+returns trigger
+language plpgsql
+as $$
+begin
+  update products
+  set current_stock = (
+    select coalesce(sum(current_stock), 0)
+    from product_stocks
+    where product_id = coalesce(new.product_id, old.product_id)
+  )
+  where id = coalesce(new.product_id, old.product_id);
+  return new;
+end;
+$$;
+
+create trigger trigger_update_product_total_stock
+after insert or update or delete
+on product_stocks
+for each row
+execute function update_product_total_stock();
+
+-- Trigger to initialize default location stock when a product is created
+create or replace function initialize_product_stock()
+returns trigger
+language plpgsql
+as $$
+declare
+  default_loc_id uuid;
+begin
+  -- Find default location for this shop
+  select id into default_loc_id from locations
+  where shop_id = new.shop_id and is_default = true
+  limit 1;
+  
+  if default_loc_id is not null then
+    insert into product_stocks (shop_id, product_id, location_id, current_stock)
+    values (new.shop_id, new.id, default_loc_id, new.current_stock)
+    on conflict (product_id, location_id) do update set current_stock = EXCLUDED.current_stock;
+  end if;
+  
+  return new;
+end;
+$$;
+
+create trigger trigger_initialize_product_stock
+after insert on products
+for each row
+execute function initialize_product_stock();
+
+-- Trigger to automatically initialize default locations when a new shop is created
+create or replace function initialize_shop_locations()
+returns trigger
+language plpgsql
+as $$
+begin
+  insert into locations (shop_id, name, is_default)
+  values 
+    (new.id, 'Counter', true),
+    (new.id, 'Main Warehouse', false);
+  return new;
+end;
+$$;
+
+create trigger trigger_initialize_shop_locations
+after insert on shops
+for each row
+execute function initialize_shop_locations();
 
 -- ============================================================
 -- INDEXES

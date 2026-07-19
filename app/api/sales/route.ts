@@ -3,23 +3,30 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(req: NextRequest) {
   const supabase = createServerSupabaseClient();
-  const body = await req.json();
 
-  const { customer_id, worker_id, payment_type, total_amount, amount_paid, items } = body;
+  // 1. Authenticate user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Please log in' }, { status: 401 });
+  }
+
+  // 2. Fetch worker profile
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id, shop_id')
+    .eq('auth_id', user.id)
+    .single();
+
+  if (!worker) {
+    return NextResponse.json({ error: 'Forbidden: Worker profile not found' }, { status: 403 });
+  }
+
+  const activeWorkerId = worker.id;
+  const body = await req.json();
+  const { customer_id, payment_type, total_amount, amount_paid, items } = body;
 
   if (!payment_type || !total_amount || !items || !items.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-  }
-
-  // Get a worker ID if not provided (to attribute the action in bypassed auth mode)
-  let activeWorkerId = worker_id;
-  if (!activeWorkerId) {
-    const { data: workers } = await supabase.from('workers').select('id').limit(1);
-    if (workers && workers.length > 0) {
-      activeWorkerId = workers[0].id;
-    } else {
-      return NextResponse.json({ error: 'Must create at least one worker row in the database.' }, { status: 400 });
-    }
   }
 
   // Calculate amount due
@@ -40,6 +47,19 @@ export async function POST(req: NextRequest) {
   }
 
   const shopId = productInfo.shop_id;
+
+  if (shopId !== worker.shop_id) {
+    return NextResponse.json({ error: 'Forbidden: Product does not belong to your shop' }, { status: 403 });
+  }
+
+  // Fetch default location (Counter) for this shop
+  const { data: defaultLoc } = await supabase
+    .from('locations')
+    .select('id')
+    .eq('shop_id', shopId)
+    .eq('is_default', true)
+    .single();
+  const defaultLocId = defaultLoc?.id;
 
   // 1. Insert Sales entry
   const { data: sale, error: saleErr } = await supabase
@@ -78,31 +98,45 @@ export async function POST(req: NextRequest) {
       console.error('Failed to log sale item:', itemErr);
     }
 
-    // Get current stock for product to recalculate
+    // Get current stock at the default Counter location and product info
     const { data: prod } = await supabase
       .from('products')
-      .select('current_stock, parent_product_id, box_quantity, name')
+      .select('parent_product_id, box_quantity, name')
       .eq('id', product_id)
       .single();
 
+    const { data: stockRow } = await supabase
+      .from('product_stocks')
+      .select('current_stock')
+      .eq('product_id', product_id)
+      .eq('location_id', defaultLocId)
+      .single();
+
     if (prod) {
-      let currentStockVal = Number(prod.current_stock);
+      let currentStockVal = stockRow ? Number(stockRow.current_stock) : 0;
       
       // AUTO-UNBOXING: If requested quantity exceeds current piece stock, check for parent box
       if (qtyNum > currentStockVal && prod.parent_product_id && prod.box_quantity) {
-        const { data: parentBox } = await supabase
-          .from('products')
-          .select('current_stock, name')
-          .eq('id', prod.parent_product_id)
+        const { data: parentBoxStockRow } = await supabase
+          .from('product_stocks')
+          .select('current_stock')
+          .eq('product_id', prod.parent_product_id)
+          .eq('location_id', defaultLocId)
           .single();
 
-        if (parentBox && Number(parentBox.current_stock) > 0) {
-          // 1. Deduct 1 box from parent
-          const updatedBoxStock = Number(parentBox.current_stock) - 1;
+        const parentBoxStock = parentBoxStockRow ? Number(parentBoxStockRow.current_stock) : 0;
+
+        if (parentBoxStock > 0) {
+          // 1. Deduct 1 box from parent in product_stocks
+          const updatedBoxStock = parentBoxStock - 1;
           await supabase
-            .from('products')
-            .update({ current_stock: updatedBoxStock })
-            .eq('id', prod.parent_product_id);
+            .from('product_stocks')
+            .upsert({
+              shop_id: shopId,
+              product_id: prod.parent_product_id,
+              location_id: defaultLocId,
+              current_stock: updatedBoxStock
+            }, { onConflict: 'product_id, location_id' });
 
           // 2. Log stock movement for parent box (transfer out)
           await supabase.from('stock_movements').insert({
@@ -112,12 +146,13 @@ export async function POST(req: NextRequest) {
             quantity: 1,
             direction: 'out',
             reason: 'transfer',
+            location_id: defaultLocId,
             entry_method: 'manual',
           });
 
           // 3. Add box_quantity (pieces) to current stock
           currentStockVal += Number(prod.box_quantity);
-          console.log(`Auto-unboxed 1 Box of "${parentBox.name}" into ${prod.box_quantity} pieces of "${prod.name}"`);
+          console.log(`Auto-unboxed 1 Box into ${prod.box_quantity} pieces for product ${prod.name}`);
 
           // 4. Log stock movement for piece product (transfer in)
           await supabase.from('stock_movements').insert({
@@ -127,6 +162,7 @@ export async function POST(req: NextRequest) {
             quantity: Number(prod.box_quantity),
             direction: 'in',
             reason: 'transfer',
+            location_id: defaultLocId,
             entry_method: 'manual',
           });
         }
@@ -134,11 +170,15 @@ export async function POST(req: NextRequest) {
 
       const updatedStock = Math.max(0, currentStockVal - qtyNum);
       
-      // Update product current_stock
+      // Update product_stocks at default location
       await supabase
-        .from('products')
-        .update({ current_stock: updatedStock })
-        .eq('id', product_id);
+        .from('product_stocks')
+        .upsert({
+          shop_id: shopId,
+          product_id,
+          location_id: defaultLocId,
+          current_stock: updatedStock
+        }, { onConflict: 'product_id, location_id' });
     }
 
     // Insert stock_movements audit trail
@@ -151,6 +191,7 @@ export async function POST(req: NextRequest) {
       reason: 'sale',
       reference_type: 'sale',
       reference_id: sale.id,
+      location_id: defaultLocId,
       entry_method: 'manual',
     });
   }

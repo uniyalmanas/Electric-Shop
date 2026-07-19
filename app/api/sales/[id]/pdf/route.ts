@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 );
 
 // Helper function to build the A5 invoice PDF in memory as a Buffer
-function generateInvoicePDF(sale: any, items: any[], customer: any): Promise<Buffer> {
+function generateInvoicePDF(sale: any, items: any[], customer: any, shopName: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: 'A5', margin: 30 });
@@ -21,9 +21,9 @@ function generateInvoicePDF(sale: any, items: any[], customer: any): Promise<Buf
       doc.on('error', (err) => reject(err));
 
       // 1. Header Branding
-      doc.fillColor('#C1793D').fontSize(16).font('Helvetica-Bold').text('SENWAL ELECTRICALS', { align: 'center' });
+      doc.fillColor('#C1793D').fontSize(16).font('Helvetica-Bold').text(shopName.toUpperCase(), { align: 'center' });
       doc.fillColor('#707C7F').fontSize(8).font('Helvetica').text('Electrical Hardware, MCBs, wires & Lights', { align: 'center' });
-      doc.text('Main Bazar, New Delhi · Ph: 9876543210', { align: 'center' });
+      doc.text('Authorized Retailer & Distributor', { align: 'center' });
       doc.moveDown(1);
 
       // 2. Metadata details
@@ -81,7 +81,7 @@ function generateInvoicePDF(sale: any, items: any[], customer: any): Promise<Buf
       doc.moveDown(1.5);
       doc.fontSize(8).font('Helvetica-Oblique').text('Thank you for purchasing with us!', { align: 'center' });
       doc.font('Helvetica').text('Please check item warranty details at the counter.', { align: 'center' });
-      doc.text('Powered by Senwal Electricals POS', { align: 'center' });
+      doc.text(`Powered by ${shopName} POS`, { align: 'center' });
 
       doc.end();
     } catch (err) {
@@ -126,9 +126,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       customer = cust;
     }
 
+    // 3.5 Fetch Shop details
+    const { data: shop } = await supabaseAdmin
+      .from('shops')
+      .select('name')
+      .eq('id', sale.shop_id)
+      .single();
+    
+    const shopName = shop?.name || 'ElectroStock';
+
     // 4. Generate the PDF buffer
     console.log(`Generating PDF for Sale ${saleId}...`);
-    const pdfBuffer = await generateInvoicePDF(sale, items, customer);
+    const pdfBuffer = await generateInvoicePDF(sale, items, customer, shopName);
 
     // 5. Upload PDF to Supabase Storage Bucket 'invoices'
     const filename = `invoice_${saleId}.pdf`;
@@ -178,7 +187,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             to: phone,
             document: publicUrl,
             filename: `invoice_${saleId.slice(0, 8).toUpperCase()}.pdf`,
-            caption: `Namaste ${customer.name || 'ji'},\nThank you for purchasing at Senwal Electricals! Here is your digital tax invoice.\n\nGrand Total: ₹${Number(sale.total_amount).toLocaleString()}\n\nOutstanding Balance: ₹${Number(sale.amount_due).toLocaleString()}`
+            caption: `Namaste ${customer.name || 'ji'},\nThank you for purchasing at ${shopName}! Here is your digital tax invoice.\n\nGrand Total: ₹${Number(sale.total_amount).toLocaleString()}\n\nOutstanding Balance: ₹${Number(sale.amount_due).toLocaleString()}`
           })
         });
 

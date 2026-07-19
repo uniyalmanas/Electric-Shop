@@ -59,11 +59,19 @@ export default function SuppliersPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: shops } = await supabase.from('shops').select('id').limit(1);
-      if (shops && shops.length > 0) {
-        setShopId(shops[0].id);
-        fetchSuppliers(shops[0].id);
-        fetchProducts();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: worker } = await supabase
+          .from('workers')
+          .select('shop_id')
+          .eq('auth_id', user.id)
+          .single();
+        
+        if (worker && worker.shop_id) {
+          setShopId(worker.shop_id);
+          fetchSuppliers(worker.shop_id);
+          fetchProducts();
+        }
       } else {
         setLoading(false);
       }

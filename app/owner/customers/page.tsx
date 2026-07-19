@@ -35,16 +35,37 @@ export default function CustomersPage() {
   const [custType, setCustType] = useState<'walk_in' | 'contractor'>('contractor');
   const [custCreditLimit, setCustCreditLimit] = useState('15000');
 
+  const [shopName, setShopName] = useState<string>('ElectroStock');
+
   // Receive Payment Form
   const [paymentAmount, setPaymentAmount] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
 
   useEffect(() => {
+    // Synchronously check localStorage on the client to avoid flash
+    const cached = localStorage.getItem('electrostock_shop_name');
+    if (cached) {
+      setShopName(cached);
+    }
+
     async function init() {
-      const { data: shops } = await supabase.from('shops').select('id').limit(1);
-      if (shops && shops.length > 0) {
-        setShopId(shops[0].id);
-        fetchCustomers(shops[0].id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: worker } = await supabase
+          .from('workers')
+          .select('shop_id, shops(name)')
+          .eq('auth_id', user.id)
+          .single();
+        
+        if (worker && worker.shop_id) {
+          setShopId(worker.shop_id);
+          if (worker.shops) {
+            const name = (worker.shops as any).name;
+            setShopName(name);
+            localStorage.setItem('electrostock_shop_name', name);
+          }
+          fetchCustomers(worker.shop_id);
+        }
       } else {
         setLoading(false);
       }
@@ -134,7 +155,7 @@ export default function CustomersPage() {
 
   // Send ledger reminder over WhatsApp Click-to-Chat
   function triggerReminder(customer: CustomerSummary) {
-    const textMsg = `*CREDIT BALANCE REMINDER - SENWAL ELECTRICALS*\n\nNamaste ${customer.name} ji,\nThis is a friendly reminder that you have an outstanding credit balance of *₹${customer.balanceDue.toLocaleString()}* on your account.\n\nPlease settle the amount at the earliest.\n\nThank you!`;
+    const textMsg = `*CREDIT BALANCE REMINDER - ${shopName.toUpperCase()}*\n\nNamaste ${customer.name} ji,\nThis is a friendly reminder that you have an outstanding credit balance of *₹${customer.balanceDue.toLocaleString()}* on your account.\n\nPlease settle the amount at the earliest.\n\nThank you!`;
     navigator.clipboard.writeText(textMsg);
     
     let phoneNum = customer.phone ? customer.phone.replace(/\D/g, '') : '';

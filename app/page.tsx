@@ -86,9 +86,20 @@ export default function Home() {
             </a>
           </div>
 
-          {/* Sandbox warning */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F4F1EA]/80 dark:bg-[#1E2427]/80 border border-slate-300/40 dark:border-[#38403F] rounded-full text-[9px] text-[#707C7F] dark:text-[#93A0A3] font-bold uppercase tracking-wider font-mono">
-            <span>🛡️ Sandbox Mode: Authenticated Bypassed</span>
+          {/* SaaS CTA Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6">
+            <a
+              href="/signup"
+              className="bg-[#C1793D] hover:bg-[#E0954F] border border-[#C1793D] text-[#1a120a] font-extrabold px-6 py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs font-mono tracking-wider"
+            >
+              🚀 REGISTER NEW SHOP (1-WEEK FREE TRIAL)
+            </a>
+            <a
+              href="/login"
+              className="bg-[#1E2427]/80 hover:bg-[#1E2427] border border-[#38403F] text-[#EDEAE3] font-extrabold px-6 py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs font-mono tracking-wider"
+            >
+              🔑 PORTAL SIGN IN
+            </a>
           </div>
         </div>
       </div>
