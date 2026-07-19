@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase';
 export default function Header({ title, backUrl }: { title: string; backUrl?: string }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [shopName, setShopName] = useState<string>('ElectroStock');
+  const [userProfile, setUserProfile] = useState<{ name: string; role: string } | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -28,14 +29,17 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
         if (user) {
           const { data: worker } = await supabase
             .from('workers')
-            .select('shop_id, shops(name)')
+            .select('name, role, shop_id, shops(name)')
             .eq('auth_id', user.id)
             .single();
           
-          if (worker && worker.shops) {
-            const name = (worker.shops as any).name;
-            setShopName(name);
-            localStorage.setItem('electrostock_shop_name', name);
+          if (worker) {
+            setUserProfile({ name: worker.name, role: worker.role });
+            if (worker.shops) {
+              const name = (worker.shops as any).name;
+              setShopName(name);
+              localStorage.setItem('electrostock_shop_name', name);
+            }
           }
         }
       } catch (err) {
@@ -55,6 +59,11 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
       localStorage.theme = 'dark';
       setTheme('dark');
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/login';
   };
 
   // Split shopName into first word and remaining words for logo styling
@@ -88,6 +97,30 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Profile Info Badge */}
+        {userProfile && (
+          <div className="flex items-center gap-3 bg-[#2A3135] border border-[#38403F] px-3.5 py-1.5 rounded-2xl shadow-inner">
+            <div className="text-right hidden md:block">
+              <p className="text-xs font-bold text-[#EDEAE3] leading-none">{userProfile.name}</p>
+              <span className={`text-[8px] font-bold uppercase tracking-wider font-mono ${
+                userProfile.role === 'owner' ? 'text-[#E0954F]' : 'text-[#93A0A3]'
+              }`}>
+                {userProfile.role}
+              </span>
+            </div>
+            
+            <div className="w-px h-5 bg-[#38403F]/50 hidden md:block" />
+
+            <button
+              onClick={handleSignOut}
+              className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D9584C] hover:text-rose-400 hover:underline transition-colors focus:outline-none cursor-pointer"
+              title="Sign Out"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+
         {/* Mode Toggle Button */}
         <button
           onClick={toggleTheme}
