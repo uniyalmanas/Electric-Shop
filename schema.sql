@@ -18,6 +18,7 @@ create table workers (
   auth_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   phone text,
+  email text,
   role text not null check (role in ('owner','staff')),
   active boolean default true,
   created_at timestamptz default now(),

@@ -4,10 +4,17 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Forgot password modal states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotStatus, setForgotStatus] = useState({ success: false, message: '' });
+
   const supabase = createClient();
 
   async function handleLogin(e: React.FormEvent) {
@@ -15,28 +22,70 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const phoneClean = phone.trim().replace(/\D/g, '');
-    if (phoneClean.length !== 10) {
-      setError('Please enter a valid 10-digit mobile number.');
-      setLoading(false);
-      return;
+    const input = identifier.trim();
+    let emailToAuth = input;
+
+    // Check if the input is a 10-digit phone number (all digits or simple symbols)
+    const phoneClean = input.replace(/\D/g, '');
+    const isPhone = phoneClean.length === 10 && !input.includes('@');
+
+    if (isPhone) {
+      try {
+        const res = await fetch('/api/auth/phone-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phoneClean }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.email) {
+          setError('No user profile found for this mobile number.');
+          setLoading(false);
+          return;
+        }
+        emailToAuth = data.email;
+      } catch (err: any) {
+        setError('Connection failed: ' + err.message);
+        setLoading(false);
+        return;
+      }
+    } else {
+      if (!input.includes('@') || !input.includes('.')) {
+        setError('Please enter a valid phone number or email address.');
+        setLoading(false);
+        return;
+      }
     }
 
-    // Phone is stored as email-format internally (e.g. 9876543210@shopapp.com)
-    // so shop staff can log in with just their phone number — no email needed.
     const { error: authErr } = await supabase.auth.signInWithPassword({
-      email: `${phoneClean}@shopapp.com`,
+      email: emailToAuth,
       password,
     });
 
     if (authErr) {
-      setError('Wrong phone number or password. Please try again.');
+      setError(authErr.message || 'Wrong credentials. Please try again.');
       setLoading(false);
       return;
     }
     
-    // Redirect to root, where the middleware or routing logic redirects to the correct dashboard (/owner or /staff)
+    // Redirect to root, where middleware handles dashboard routing
     window.location.href = '/'; 
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotStatus({ success: false, message: '' });
+
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (resetErr) {
+      setForgotStatus({ success: false, message: resetErr.message });
+    } else {
+      setForgotStatus({ success: true, message: 'Reset email sent! Please check your inbox.' });
+    }
+    setForgotLoading(false);
   }
 
   return (
@@ -56,32 +105,39 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             Sign In to <span className="text-[#E0954F]">ElectroStock</span>
           </h1>
-          <p className="text-xs text-[#93A0A3]">Enter your registered mobile number and password to access your dashboard.</p>
+          <p className="text-xs text-[#93A0A3]">Enter your phone number or email and password to access your dashboard.</p>
         </div>
 
         <div className="space-y-4">
           
-          {/* Phone Number Input */}
+          {/* Identity Input */}
           <div>
-            <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Registered Phone Number</label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-mono text-[#707C7F] dark:text-[#93A0A3]">+91</span>
-              <input
-                type="tel"
-                required
-                maxLength={10}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-[#14181B] border border-[#38403F] rounded-xl pl-12 pr-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors font-mono"
-                placeholder="9876543210"
-              />
-            </div>
+            <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Phone or Email Address</label>
+            <input
+              type="text"
+              required
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-650 focus:outline-none focus:border-[#C1793D] transition-colors"
+              placeholder="9876543210 or name@example.com"
+            />
           </div>
 
           {/* Password Input */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider">Password</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotStatus({ success: false, message: '' });
+                  setForgotEmail('');
+                  setShowForgotModal(true);
+                }}
+                className="text-[9px] font-bold text-[#E0954F] hover:underline uppercase tracking-wider focus:outline-none"
+              >
+                Forgot Password?
+              </button>
             </div>
             <input
               type="password"
@@ -119,6 +175,60 @@ export default function LoginPage() {
         </div>
 
       </form>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-[#1E2427] border border-[#38403F] rounded-3xl p-6 shadow-2xl animate-scale-in text-left">
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#E0954F]" />
+            
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-[#EDEAE3]">Account Recovery</h3>
+                <p className="text-xs text-[#93A0A3]">Reset your account password via email link.</p>
+              </div>
+              <button
+                onClick={() => setShowForgotModal(false)}
+                className="text-[#93A0A3] hover:text-[#EDEAE3] text-xl font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Registered Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-650 focus:outline-none focus:border-[#C1793D] transition-colors"
+                  placeholder="e.g. manas@example.com"
+                />
+              </div>
+
+              {forgotStatus.message && (
+                <div className={`p-3 rounded-xl text-xs font-medium text-center border ${
+                  forgotStatus.success 
+                    ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-450' 
+                    : 'bg-rose-500/10 border-rose-500/25 text-rose-450'
+                }`}>
+                  {forgotStatus.success ? '✅' : '⚠️'} {forgotStatus.message}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="w-full bg-[#C1793D] hover:bg-[#E0954F] disabled:opacity-40 text-[#1a120a] font-bold py-3 rounded-xl transition-all shadow-md text-xs uppercase font-mono tracking-wider"
+              >
+                {forgotLoading ? 'Sending link...' : 'Send Recovery Email'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

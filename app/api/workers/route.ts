@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Parse input body
     const body = await req.json();
-    const { name, phone, password, role } = body;
+    const { name, phone, email, password, role } = body;
 
     if (!name || !phone || !password || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid worker role' }, { status: 400 });
     }
 
-    // 4. Create the Auth user for the worker using phone email format
-    const email = `${phoneClean}@shopapp.com`;
+    // 4. Create the Auth user for the worker using email or phone fallback
+    const finalEmail = email && email.includes('@') ? email.trim().toLowerCase() : `${phoneClean}@shopapp.com`;
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: finalEmail,
       password,
       email_confirm: true,
       user_metadata: { role } // Store role in metadata for fast JWT middleware checks
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
         auth_id: authUser.user.id,
         name: name.trim(),
         phone: phoneClean,
+        email: finalEmail,
         role,
         active: true
       })

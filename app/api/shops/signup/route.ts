@@ -10,9 +10,9 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { shopName, ownerName, phone, password, seedCatalog } = body;
+    const { shopName, ownerName, email, phone, password, seedCatalog } = body;
 
-    if (!shopName || !ownerName || !phone || !password) {
+    if (!shopName || !ownerName || !email || !phone || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -22,9 +22,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Create the Auth user for the owner using service_role to bypass rate limits/emails
-    const email = `${phoneClean}@shopapp.com`;
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: email.trim().toLowerCase(),
       password,
       email_confirm: true,
       user_metadata: { role: 'owner' }
@@ -58,6 +57,7 @@ export async function POST(req: NextRequest) {
         auth_id: authUser.user.id,
         name: ownerName.trim(),
         phone: phoneClean,
+        email: email.trim().toLowerCase(),
         role: 'owner',
         active: true
       });

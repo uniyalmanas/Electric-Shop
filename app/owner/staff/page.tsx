@@ -8,6 +8,7 @@ interface Worker {
   id: string;
   name: string;
   phone: string | null;
+  email: string | null;
   role: 'owner' | 'staff';
   active: boolean;
   created_at: string;
@@ -34,6 +35,7 @@ export default function StaffManagementPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [workerName, setWorkerName] = useState('');
   const [workerPhone, setWorkerPhone] = useState('');
+  const [workerEmail, setWorkerEmail] = useState('');
   const [workerRole, setWorkerRole] = useState<'owner' | 'staff'>('staff');
   const [workerPassword, setWorkerPassword] = useState('');
   const [submittingWorker, setSubmittingWorker] = useState(false);
@@ -100,6 +102,7 @@ export default function StaffManagementPage() {
         body: JSON.stringify({
           name: workerName,
           phone: workerPhone,
+          email: workerEmail || undefined, // Send if entered, otherwise undefined for phone-only fallback
           password: workerPassword,
           role: workerRole,
         }),
@@ -112,6 +115,7 @@ export default function StaffManagementPage() {
         setShowAddModal(false);
         setWorkerName('');
         setWorkerPhone('');
+        setWorkerEmail('');
         setWorkerPassword('');
         setWorkerRole('staff');
         fetchData();
@@ -287,6 +291,17 @@ export default function StaffManagementPage() {
                   onChange={(e) => setWorkerPhone(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none"
                   placeholder="e.g. 9876543210"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Email Address (Optional)</label>
+                <input
+                  type="email"
+                  value={workerEmail}
+                  onChange={(e) => setWorkerEmail(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none"
+                  placeholder="e.g. staff@example.com"
                 />
               </div>
 

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase';
 export default function SignupPage() {
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [seedCatalog, setSeedCatalog] = useState(true);
@@ -20,7 +21,13 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
-    if (phone.length !== 10 || isNaN(Number(phone))) {
+    if (!email.trim() || !email.includes('@') || !email.includes('.')) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
+    if (phone.trim().length !== 10 || isNaN(Number(phone.trim()))) {
       setError('Please enter a valid 10-digit mobile number.');
       setLoading(false);
       return;
@@ -41,6 +48,7 @@ export default function SignupPage() {
         body: JSON.stringify({
           shopName,
           ownerName,
+          email,
           phone,
           password,
           seedCatalog,
@@ -103,6 +111,18 @@ export default function SignupPage() {
                 onChange={(e) => setOwnerName(e.target.value)}
                 className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
                 placeholder="e.g. Manas Uniyal"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Email Address</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
+                placeholder="e.g. manas@example.com"
               />
             </div>
 
