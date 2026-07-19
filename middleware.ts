@@ -45,20 +45,22 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   } else {
-    // Authenticated user checks
-    let role = user.user_metadata?.role;
+    // Fetch worker profile to verify active status and role
+    const { data: worker } = await supabase
+      .from('workers')
+      .select('role, active')
+      .eq('auth_id', user.id)
+      .single();
 
-    if (!role) {
-      // Fallback query if role is not in token metadata (e.g. legacy/seeded users)
-      const { data: worker } = await supabase
-        .from('workers')
-        .select('role')
-        .eq('auth_id', user.id)
-        .single();
-      if (worker) {
-        role = worker.role;
-      }
+    if (!worker || !worker.active) {
+      // Inactive or deleted worker: terminate session and redirect to login
+      const redirectResponse = NextResponse.redirect(new URL('/login?error=deactivated', request.url));
+      // Delete session cookies manually or signOut
+      await supabase.auth.signOut();
+      return redirectResponse;
     }
+
+    const role = worker.role;
 
     // Redirect authenticated users trying to hit login/signup pages to their dashboards
     if (isLoginPath || isSignupPath) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 
 export default function LoginPage() {
@@ -8,6 +8,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'deactivated') {
+      setError('Your worker profile has been deactivated. Please contact your shop owner.');
+    }
+  }, []);
 
   // Forgot password modal states
   const [showForgotModal, setShowForgotModal] = useState(false);
