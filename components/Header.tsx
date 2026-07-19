@@ -7,6 +7,7 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [shopName, setShopName] = useState<string>('ElectroStock');
   const [userProfile, setUserProfile] = useState<{ name: string; role: string } | null>(null);
+  const [lang, setLang] = useState<'en' | 'hinglish'>('en');
   const supabase = createClient();
 
   useEffect(() => {
@@ -21,6 +22,11 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
     const cached = localStorage.getItem('electrostock_shop_name');
     if (cached) {
       setShopName(cached);
+    }
+
+    const cachedLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish';
+    if (cachedLang) {
+      setLang(cachedLang);
     }
 
     async function loadShop() {
@@ -59,6 +65,13 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
       localStorage.theme = 'dark';
       setTheme('dark');
     }
+  };
+
+  const toggleLanguage = () => {
+    const nextLang = lang === 'en' ? 'hinglish' : 'en';
+    setLang(nextLang);
+    localStorage.setItem('electrostock_language', nextLang);
+    window.dispatchEvent(new Event('languageChange'));
   };
 
   const handleSignOut = async () => {
@@ -120,6 +133,16 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
             </button>
           </div>
         )}
+
+        {/* Language Selector Button */}
+        <button
+          onClick={toggleLanguage}
+          className="px-3 h-9 rounded-xl bg-[#2A3135] border border-[#38403F] hover:border-[#C1793D] flex items-center gap-1.5 text-xs font-bold text-[#EDEAE3] transition-all active:scale-95 shadow-sm cursor-pointer"
+          title="Toggle Language"
+        >
+          <span>🌐</span>
+          <span>{lang === 'en' ? 'EN' : 'HINGLISH'}</span>
+        </button>
 
         {/* Mode Toggle Button */}
         <button

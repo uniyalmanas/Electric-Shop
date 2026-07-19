@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import Header from '@/components/Header';
+import { translations } from '@/lib/translations';
 
 interface Summary {
   todaySales: number;
@@ -18,6 +19,7 @@ export default function OwnerDashboard() {
   const supabase = createClient();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState<'en' | 'hinglish'>('en');
 
   // Shop Settings States
   const [shopId, setShopId] = useState('');
@@ -27,6 +29,16 @@ export default function OwnerDashboard() {
   const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
+    const cachedLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish';
+    if (cachedLang) setLang(cachedLang);
+
+    const handleLangChange = () => {
+      const nextLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish';
+      if (nextLang) setLang(nextLang);
+    };
+
+    window.addEventListener('languageChange', handleLangChange);
+
     async function loadSummary() {
       const todayStr = new Date().toISOString().split('T')[0];
       
@@ -131,6 +143,10 @@ export default function OwnerDashboard() {
       setLoading(false);
     }
     loadSummary();
+
+    return () => {
+      window.removeEventListener('languageChange', handleLangChange);
+    };
   }, []);
 
   async function handleUpdateShopName(e: React.FormEvent) {
@@ -165,27 +181,27 @@ export default function OwnerDashboard() {
       {/* Decorative glows */}
       <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-[#C1793D]/5 rounded-full blur-3xl pointer-events-none" />
 
-      <Header title="Owner Dashboard" backUrl="/" />
+      <Header title={translations[lang].ownerDashboard} backUrl="/" />
 
       <div className="flex-1 max-w-5xl w-full mx-auto p-6 space-y-8 z-10 animate-slide-up">
         
         {/* Dashboard Summary Cards */}
         {loading || !summary ? (
-          <div className="text-center py-12 text-[#93A0A3] font-medium font-mono">Loading metrics...</div>
+          <div className="text-center py-12 text-[#93A0A3] font-medium font-mono">{translations[lang].loadingMetrics}</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Card label="Today's Sales" value={`₹${summary.todaySales.toLocaleString()}`} icon="📈" borderHighlight="border-l-[#C1793D]" />
-            <Card label="Cash Received" value={`₹${summary.todayCashIn.toLocaleString()}`} icon="💵" borderHighlight="border-l-[#4FAE7A]" />
+            <Card label={translations[lang].todaySales} value={`₹${summary.todaySales.toLocaleString()}`} icon="📈" borderHighlight="border-l-[#C1793D]" />
+            <Card label={translations[lang].cashReceived} value={`₹${summary.todayCashIn.toLocaleString()}`} icon="💵" borderHighlight="border-l-[#4FAE7A]" />
             <Card
-              label="Low Stock"
+              label={translations[lang].lowStock}
               value={summary.lowStockCount.toString()}
               icon="⚠️"
               alert={summary.lowStockCount > 0}
               borderHighlight={summary.lowStockCount > 0 ? 'border-l-[#D9584C]' : 'border-l-[#F0AD3E]'}
             />
-            <Card label="Customer Dues" value={`₹${summary.customerDueTotal.toLocaleString()}`} icon="👥" borderHighlight="border-l-[#C1793D]" />
+            <Card label={translations[lang].duesReceivable} value={`₹${summary.customerDueTotal.toLocaleString()}`} icon="👥" borderHighlight="border-l-[#C1793D]" />
             <Card
-              label="Supplier Payables"
+              label={translations[lang].duesPayable}
               value={`₹${summary.supplierPayableTotal.toLocaleString()}`}
               icon="🏢"
               borderHighlight="border-l-[#F0AD3E]"
@@ -246,17 +262,17 @@ export default function OwnerDashboard() {
 
         {/* Navigation Grid */}
         <div className="space-y-4">
-          <h3 className="font-extrabold text-xs text-[#707C7F] dark:text-[#93A0A3] uppercase tracking-widest font-mono">Management Operations</h3>
+          <h3 className="font-extrabold text-xs text-[#707C7F] dark:text-[#93A0A3] uppercase tracking-widest font-mono">{translations[lang].quickLinks}</h3>
           
           <div className="grid md:grid-cols-2 gap-4">
-            <NavLink href="/owner/inventory" label="Inventory & SKUs" description="Manage electrical products, replenish stock, define warranty terms, and trigger unboxing calculations." icon="📦" badge="ElectroStock Theme" />
-            <NavLink href="/owner/customers" label="Customer Credit Ledger" description="Track contractor ledger limits, register payment settlements, and send direct WhatsApp credit alerts." icon="👤" badge="WhatsApp POS" />
-            <NavLink href="/owner/suppliers" label="Supplier Accounts" description="Log purchase statements, manage supplier outstanding dues, and check invoice histories." icon="🏭" badge="Purchases" />
+            <NavLink href="/owner/inventory" label={translations[lang].inventoryLabel} description={translations[lang].inventoryDesc} icon="📦" badge="ElectroStock Theme" />
+            <NavLink href="/owner/customers" label={translations[lang].contractorLabel} description={translations[lang].contractorDesc} icon="👤" badge="WhatsApp POS" />
+            <NavLink href="/owner/suppliers" label={translations[lang].suppliersLabel} description={translations[lang].suppliersDesc} icon="🏭" badge="Purchases" />
             <NavLink href="/owner/purchases/review" label="Invoice OCR Ingestion" description="Scan invoice images or PDFs via Gemini OCR, map extracted line items, and update stock counts." icon="🧾" badge="Gemini AI" />
-            <NavLink href="/owner/expenses" label="Expenses & P&L Statements" description="Log monthly office operational expenses (rent, wage bills, utility costs) and inspect net profit margins." icon="📉" badge="Finance Log" />
-            <NavLink href="/owner/reports" label="CA GST Reports" description="Compile outward tax invoices (GSTR-1) and ITC purchases (GSTR-3B) into standard CA spreadsheets." icon="📊" badge="GSTR-1/3B Ready" />
-             <NavLink href="/owner/reconciliation" label="Stock Reconciliation" description="Audit physical counts, view shrinkage valuation losses, track discrepancy history, and adjust system stock." icon="🔍" badge="Loss Audit" />
-            <NavLink href="/owner/staff" label="Staff Roster & Audits" description="Register counter workers, deactivate staff access, and trace historical database audit trails." icon="👥" badge="Logs" />
+            <NavLink href="/owner/expenses" label={translations[lang].expensesLabel} description={translations[lang].expensesDesc} icon="📉" badge="Finance Log" />
+            <NavLink href="/owner/reports" label={translations[lang].reportsLabel} description={translations[lang].reportsDesc} icon="📊" badge="GSTR-1/3B Ready" />
+             <NavLink href="/owner/reconciliation" label={translations[lang].reconciliationLabel} description={translations[lang].reconciliationDesc} icon="🔍" badge="Loss Audit" />
+            <NavLink href="/owner/staff" label={translations[lang].registerStaff} description={translations[lang].registeredWorkers} icon="👥" badge="Logs" />
             
             <button
               onClick={() => setShowSettingsModal(true)}

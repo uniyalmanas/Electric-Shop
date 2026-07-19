@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import Header from '@/components/Header';
+import { translations } from '@/lib/translations';
 
 interface Worker {
   id: string;
@@ -30,6 +31,7 @@ export default function StaffManagementPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [shopId, setShopId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState<'en' | 'hinglish'>('en');
 
   // Add Worker Form States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,6 +43,16 @@ export default function StaffManagementPage() {
   const [submittingWorker, setSubmittingWorker] = useState(false);
 
   useEffect(() => {
+    const cachedLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish';
+    if (cachedLang) setLang(cachedLang);
+
+    const handleLangChange = () => {
+      const nextLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish';
+      if (nextLang) setLang(nextLang);
+    };
+
+    window.addEventListener('languageChange', handleLangChange);
+
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -59,6 +71,10 @@ export default function StaffManagementPage() {
       }
     }
     init();
+
+    return () => {
+      window.removeEventListener('languageChange', handleLangChange);
+    };
   }, []);
 
   async function fetchData(targetShopId = shopId) {
@@ -147,7 +163,7 @@ export default function StaffManagementPage() {
       <div className="absolute top-0 left-1/4 w-[400px] h-[300px] bg-gradient-to-b from-[#C1793D]/5 to-transparent blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-gradient-to-t from-emerald-500/5 to-transparent blur-3xl pointer-events-none" />
 
-      <Header title="Manage Workers & Audits" backUrl="/owner" />
+      <Header title={translations[lang].registerStaff} backUrl="/owner" />
 
       {/* Main Content */}
       <div className="flex-1 max-w-6xl w-full mx-auto p-6 space-y-6 z-10">
@@ -155,7 +171,7 @@ export default function StaffManagementPage() {
         {/* Controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="bg-[#1E2427] border border-[#38403F] rounded-3xl p-5 shadow-lg max-w-xs w-full">
-            <p className="text-[#93A0A3] text-[10px] font-bold uppercase tracking-wider">Active Staff Members</p>
+            <p className="text-[#93A0A3] text-[10px] font-bold uppercase tracking-wider">{translations[lang].activeStaff}</p>
             <p className="text-3xl font-black text-[#EDEAE3] mt-1">
               {workers.filter(w => w.active).length}
             </p>
@@ -165,19 +181,19 @@ export default function StaffManagementPage() {
             onClick={() => setShowAddModal(true)}
             className="bg-[#C1793D] hover:bg-[#E0954F] border border-[#C1793D] text-[#1a120a] font-extrabold px-5 py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs font-mono tracking-wider whitespace-nowrap"
           >
-            ➕ Register Staff Member
+            ➕ {translations[lang].registerStaff}
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-[#93A0A3] font-mono">Loading staff statements...</div>
+          <div className="text-center py-12 text-[#93A0A3] font-mono">{translations[lang].loadingStaff}</div>
         ) : (
           <div className="grid lg:grid-cols-3 gap-6">
             
             {/* Left Panel: Workers List */}
             <div className="lg:col-span-1 bg-[#1E2427] border border-[#38403F] rounded-3xl p-6 space-y-4 shadow-xl h-fit">
               <h3 className="font-bold text-xs text-[#93A0A3] uppercase tracking-wider border-b border-[#38403F] pb-2">
-                Registered Workers
+                {translations[lang].registeredWorkers}
               </h3>
 
               <div className="space-y-3">
@@ -204,13 +220,13 @@ export default function StaffManagementPage() {
 
                     <div className="flex justify-between items-center border-t border-[#38403F]/30 pt-2.5 mt-1">
                       <span className={`text-[9px] font-bold ${w.active ? 'text-emerald-450' : 'text-rose-450'}`}>
-                        {w.active ? '● Active' : '● Inactive'}
+                        {w.active ? '● ' + translations[lang].activeStatus : '● ' + translations[lang].inactiveStatus}
                       </span>
                       <button
                         onClick={() => toggleWorkerActive(w)}
                         className="text-[10px] font-bold hover:underline text-[#E0954F]"
                       >
-                        {w.active ? 'Deactivate' : 'Activate'}
+                        {w.active ? translations[lang].deactivate : translations[lang].activate}
                       </button>
                     </div>
                   </div>
@@ -221,22 +237,22 @@ export default function StaffManagementPage() {
             {/* Right Panel: Recent Audit Logs */}
             <div className="lg:col-span-2 bg-[#1E2427] border border-[#38403F] rounded-3xl p-6 space-y-4 shadow-xl">
               <h3 className="font-bold text-xs text-[#93A0A3] uppercase tracking-wider border-b border-[#38403F] pb-2">
-                Recent Stock movements audit log (Top 25)
+                {translations[lang].recentStockMovements}
               </h3>
 
               {auditLogs.length === 0 ? (
-                <p className="text-[#93A0A3] text-xs py-8 text-center">No stock movements recorded yet.</p>
+                <p className="text-[#93A0A3] text-xs py-8 text-center">{translations[lang].noStockMovements}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-[#14181B] text-[#93A0A3] font-bold uppercase tracking-wider border-b border-[#38403F]">
-                        <th className="py-3 px-4">Time</th>
-                        <th className="py-3 px-4">Staff</th>
-                        <th className="py-3 px-4">Product</th>
-                        <th className="py-3 px-4 text-center">Qty</th>
-                        <th className="py-3 px-4 text-center">Direction</th>
-                        <th className="py-3 px-4">Reason</th>
+                        <th className="py-3 px-4">{translations[lang].time}</th>
+                        <th className="py-3 px-4">{translations[lang].staff}</th>
+                        <th className="py-3 px-4">{translations[lang].product}</th>
+                        <th className="py-3 px-4 text-center">{translations[lang].qty}</th>
+                        <th className="py-3 px-4 text-center">{translations[lang].direction}</th>
+                        <th className="py-3 px-4">{translations[lang].reason}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#38403F]/20">
@@ -277,13 +293,13 @@ export default function StaffManagementPage() {
             <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#C1793D]" />
             
             <div className="p-6 border-b border-[#38403F] flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#EDEAE3]">Register Staff / Worker</h2>
+              <h2 className="text-xl font-bold text-[#EDEAE3]">{translations[lang].registerStaff}</h2>
               <button onClick={() => setShowAddModal(false)} className="text-[#93A0A3] hover:text-[#EDEAE3] text-2xl font-bold cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={handleAddWorker} className="p-6 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">Staff Name</label>
+                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">{translations[lang].staffName}</label>
                 <input
                   type="text"
                   required
@@ -295,7 +311,7 @@ export default function StaffManagementPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">Phone Number (For Login)</label>
+                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">{translations[lang].phoneLogin}</label>
                 <input
                   type="tel"
                   required
@@ -307,7 +323,7 @@ export default function StaffManagementPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">Email Address (Optional)</label>
+                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">{translations[lang].emailOptional}</label>
                 <input
                   type="email"
                   value={workerEmail}
@@ -318,7 +334,7 @@ export default function StaffManagementPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">Login Password</label>
+                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">{translations[lang].loginPassword}</label>
                 <input
                   type="text"
                   required
@@ -330,14 +346,14 @@ export default function StaffManagementPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">Shop Role</label>
+                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">{translations[lang].shopRole}</label>
                 <select
                   value={workerRole}
                   onChange={(e) => setWorkerRole(e.target.value as any)}
                   className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-xs text-[#EDEAE3] focus:outline-none focus:border-[#C1793D] transition-colors"
                 >
-                  <option value="staff" className="bg-[#1E2427]">Staff Member (Counter access only)</option>
-                  <option value="owner" className="bg-[#1E2427]">Co-Owner (Full access)</option>
+                  <option value="staff" className="bg-[#1E2427]">{translations[lang].staffRoleOpt}</option>
+                  <option value="owner" className="bg-[#1E2427]">{translations[lang].ownerRoleOpt}</option>
                 </select>
               </div>
 
@@ -347,14 +363,14 @@ export default function StaffManagementPage() {
                   onClick={() => setShowAddModal(false)}
                   className="bg-transparent hover:bg-[#38403F]/20 text-[#EDEAE3] border border-[#38403F] font-bold px-4 py-2.5 rounded-xl text-xs uppercase font-mono tracking-wider transition-colors"
                 >
-                  Cancel
+                  {translations[lang].cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submittingWorker}
                   className="bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-bold px-5 py-2.5 rounded-xl text-xs uppercase font-mono tracking-wider transition-colors disabled:opacity-50"
                 >
-                  {submittingWorker ? 'Registering...' : 'Register Staff'}
+                  {submittingWorker ? 'Registering...' : translations[lang].registerBtn}
                 </button>
               </div>
             </form>
