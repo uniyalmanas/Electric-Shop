@@ -33,74 +33,27 @@ export default function SignupPage() {
     }
 
     try {
-      // 1. Sign up the user in Supabase Auth using phone format email
-      const email = `${phone}@shopapp.com`;
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            role: 'owner'
-          }
-        }
+      const res = await fetch('/api/shops/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shopName,
+          ownerName,
+          phone,
+          password,
+          seedCatalog,
+        }),
       });
 
-      if (authErr || !authData.user) {
-        setError(authErr?.message || 'Authentication signup failed.');
+      const result = await res.json();
+      if (!res.ok) {
+        setError(result.error || 'Registration failed.');
         setLoading(false);
         return;
       }
 
-      // 2. Create the shop entry
-      const { data: shop, error: shopErr } = await supabase
-        .from('shops')
-        .insert({
-          name: shopName.trim(),
-          owner_auth_id: authData.user.id,
-        })
-        .select()
-        .single();
-
-      if (shopErr || !shop) {
-        setError('Failed to create shop record: ' + (shopErr?.message || 'unknown error'));
-        setLoading(false);
-        return;
-      }
-
-      // 3. Create the owner worker entry (Rely on the new bootstrap RLS policy)
-      const { error: workerErr } = await supabase
-        .from('workers')
-        .insert({
-          shop_id: shop.id,
-          auth_id: authData.user.id,
-          name: ownerName.trim(),
-          phone: phone,
-          role: 'owner',
-          active: true,
-        });
-
-      if (workerErr) {
-        setError('Failed to link owner profile: ' + workerErr.message);
-        setLoading(false);
-        return;
-      }
-
-      // 4. Seed the default catalog if selected
-      if (seedCatalog) {
-        const res = await fetch('/api/shops/seed', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ shop_id: shop.id }),
-        });
-        const seedResult = await res.json();
-        if (seedResult.error) {
-          console.error('Seeding warning:', seedResult.error);
-        }
-      }
-
-      // 5. Success step
       setStep('success');
     } catch (err: any) {
       setError('An unexpected error occurred: ' + err.message);
