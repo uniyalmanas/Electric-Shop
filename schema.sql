@@ -7,7 +7,7 @@
 create table shops (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  owner_auth_id uuid not null references auth.users(id),
+  owner_auth_id uuid not null references auth.users(id) on delete cascade,
   created_at timestamptz default now()
 );
 
@@ -15,7 +15,7 @@ create table shops (
 create table workers (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid not null references shops(id) on delete cascade,
-  auth_id uuid not null references auth.users(id),
+  auth_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   phone text,
   role text not null check (role in ('owner','staff')),
