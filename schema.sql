@@ -297,7 +297,11 @@ create policy reconciliation_select on reconciliation_logs
   for select using (is_shop_member(shop_id));
 
 -- LOCATIONS & PRODUCT STOCKS: all shop members can access
-create policy locations_shop_access on locations for all using (is_shop_member(shop_id));
+create policy locations_shop_access on locations
+  for all using (
+    is_shop_member(shop_id) or
+    exists (select 1 from shops where id = shop_id and owner_auth_id = auth.uid())
+  );
 create policy product_stocks_shop_access on product_stocks for all using (is_shop_member(shop_id));
 
 -- Trigger to keep products.current_stock updated automatically
