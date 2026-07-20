@@ -235,7 +235,7 @@ export default function BillingPage() {
                   <p className="text-[10px] text-[#93A0A3] font-medium mt-1">Perfect for small neighborhood counters.</p>
                 </div>
                 <div className="flex items-baseline gap-0.5 border-b border-[#38403F]/40 pb-4">
-                  <span className="text-3xl font-black text-[#EDEAE3]">₹399</span>
+                  <span className="text-3xl font-black text-[#EDEAE3]">₹1</span>
                   <span className="text-[10px] text-[#93A0A3] font-bold font-mono">/ MONTH</span>
                 </div>
                 <ul className="space-y-3 text-xs text-[#93A0A3] font-medium">
@@ -246,7 +246,7 @@ export default function BillingPage() {
                 </ul>
               </div>
               <button
-                onClick={() => handleCheckout('basic', 399)}
+                onClick={() => handleCheckout('basic', 1)}
                 disabled={submitting}
                 className="mt-6 w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-bold py-2.5 rounded-xl text-xs font-mono tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
               >
@@ -265,7 +265,7 @@ export default function BillingPage() {
                   <p className="text-[10px] text-[#93A0A3] font-medium mt-1">Best for busy retail outlets.</p>
                 </div>
                 <div className="flex items-baseline gap-0.5 border-b border-[#38403F]/40 pb-4">
-                  <span className="text-3xl font-black text-[#EDEAE3]">₹799</span>
+                  <span className="text-3xl font-black text-[#EDEAE3]">₹1</span>
                   <span className="text-[10px] text-[#93A0A3] font-bold font-mono">/ MONTH</span>
                 </div>
                 <ul className="space-y-3 text-xs text-[#EDEAE3] font-medium">
@@ -276,7 +276,7 @@ export default function BillingPage() {
                 </ul>
               </div>
               <button
-                onClick={() => handleCheckout('pro', 799)}
+                onClick={() => handleCheckout('pro', 1)}
                 disabled={submitting}
                 className="mt-6 w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-bold py-2.5 rounded-xl text-xs font-mono tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
               >
@@ -292,7 +292,7 @@ export default function BillingPage() {
                   <p className="text-[10px] text-[#93A0A3] font-medium mt-1">Designed for wholesale distributors.</p>
                 </div>
                 <div className="flex items-baseline gap-0.5 border-b border-[#38403F]/40 pb-4">
-                  <span className="text-3xl font-black text-[#EDEAE3]">₹1299</span>
+                  <span className="text-3xl font-black text-[#EDEAE3]">₹1</span>
                   <span className="text-[10px] text-[#93A0A3] font-bold font-mono">/ MONTH</span>
                 </div>
                 <ul className="space-y-3 text-xs text-[#93A0A3] font-medium">
@@ -303,7 +303,7 @@ export default function BillingPage() {
                 </ul>
               </div>
               <button
-                onClick={() => handleCheckout('premium', 1299)}
+                onClick={() => handleCheckout('premium', 1)}
                 disabled={submitting}
                 className="mt-6 w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-bold py-2.5 rounded-xl text-xs font-mono tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
               >
