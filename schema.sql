@@ -413,3 +413,50 @@ create policy feedbacks_select_all on feedbacks
       where workers.auth_id = auth.uid() and workers.role = 'master'
     )
   );
+
+-- ============================================================
+-- BILLING TRANSACTIONS & RECEIPTS
+-- ============================================================
+create table billing_transactions (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references shops(id) on delete cascade,
+  amount numeric(10,2) not null,
+  plan text not null,
+  payment_method text not null check (payment_method in ('razorpay', 'upi')),
+  transaction_ref text not null unique,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_at timestamptz default now()
+);
+
+alter table billing_transactions enable row level security;
+
+create policy "Owners can view their billing transactions"
+  on billing_transactions for select
+  using (
+    exists (
+      select 1 from workers
+      where workers.shop_id = billing_transactions.shop_id
+      and workers.auth_id = auth.uid()
+    )
+  );
+
+create policy "Owners can create billing transactions"
+  on billing_transactions for insert
+  with check (
+    exists (
+      select 1 from workers
+      where workers.shop_id = billing_transactions.shop_id
+      and workers.auth_id = auth.uid()
+      and workers.role = 'owner'
+    )
+  );
+
+create policy "Master admin can manage all transactions"
+  on billing_transactions for all
+  using (
+    exists (
+      select 1 from workers
+      where workers.auth_id = auth.uid()
+      and workers.role = 'master'
+    )
+  );

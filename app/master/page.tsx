@@ -27,11 +27,24 @@ interface Feedback {
   workers: { name: string } | null;
 }
 
+interface Transaction {
+  id: string;
+  shop_id: string;
+  amount: number;
+  plan: string;
+  payment_method: string;
+  transaction_ref: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  shops: { name: string } | null;
+}
+
 export default function MasterDashboard() {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'shops' | 'feedback'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'shops' | 'transactions' | 'feedback'>('dashboard');
   const [shops, setShops] = useState<DetailedShop[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedShop, setSelectedShop] = useState<DetailedShop | null>(null);
 
@@ -39,14 +52,12 @@ export default function MasterDashboard() {
   async function loadMasterData() {
     try {
       setLoading(true);
+      
       // Fetch aggregated shop details
       const res = await fetch('/api/master/shops');
       const data = await res.json();
-      
       if (res.ok) {
         setShops(data.shops || []);
-      } else {
-        console.error('Error fetching shops:', data.error);
       }
 
       // Fetch feedbacks
@@ -54,6 +65,13 @@ export default function MasterDashboard() {
       const fData = await fRes.json();
       if (fRes.ok) {
         setFeedbacks(fData.feedbacks || []);
+      }
+
+      // Fetch transactions logs
+      const tRes = await fetch('/api/master/transactions');
+      const tData = await tRes.json();
+      if (tRes.ok) {
+        setTransactions(tData.transactions || []);
       }
     } catch (err) {
       console.error('Error loading master portal:', err);
@@ -76,7 +94,6 @@ export default function MasterDashboard() {
       });
 
       if (res.ok) {
-        // Refresh local state
         setShops(prev => prev.map(s => s.id === shopId ? { ...s, ...updates } as DetailedShop : s));
       } else {
         const data = await res.json();
@@ -93,6 +110,28 @@ export default function MasterDashboard() {
     const current = new Date(currentTrialEnd);
     current.setDate(current.getDate() + days);
     handleUpdateShop(shopId, { trial_ends_at: current.toISOString() });
+  };
+
+  // Approve/Reject manual UPI transactions
+  const handleVerifyTransaction = async (transactionId: string, status: 'approved' | 'rejected') => {
+    try {
+      const res = await fetch('/api/master/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionId, status }),
+      });
+
+      if (res.ok) {
+        setTransactions(prev => prev.map(t => t.id === transactionId ? { ...t, status } : t));
+        loadMasterData(); // reload shop statuses
+        alert(`Transaction successfully ${status}!`);
+      } else {
+        const data = await res.json();
+        alert('Failed to update transaction status: ' + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Impersonate Shop Owner Account
@@ -118,11 +157,13 @@ export default function MasterDashboard() {
   const activeSubs = shops.filter(s => s.subscription_status && s.subscription_status !== 'expired' && s.subscription_status !== 'trial').length;
   const suspendedCount = shops.filter(s => s.is_suspended).length;
 
-  // Estimate Monthly Recurring Revenue (MRR)
-  const basicCount = shops.filter(s => s.subscription_status === 'basic').length;
-  const proCount = shops.filter(s => s.subscription_status === 'pro').length;
-  const premiumCount = shops.filter(s => s.subscription_status === 'premium').length;
-  const mrr = (basicCount * 399) + (proCount * 799) + (premiumCount * 1299);
+  // Real earnings received (approved transactions)
+  const totalEarnings = transactions
+    .filter(t => t.status === 'approved')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  // Pending UPI transactions counts
+  const pendingUpiCount = transactions.filter(t => t.status === 'pending' && t.payment_method === 'upi').length;
 
   return (
     <div className="min-h-screen bg-[#14181B] text-[#EDEAE3] flex flex-col font-sans antialiased relative overflow-hidden">
@@ -182,6 +223,21 @@ export default function MasterDashboard() {
                 🏢 Shop Directory
               </button>
               <button
+                onClick={() => setActiveTab('transactions')}
+                className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex justify-between items-center ${
+                  activeTab === 'transactions'
+                    ? 'bg-[#C1793D] text-[#1a120a] shadow-lg'
+                    : 'bg-transparent text-[#93A0A3] hover:bg-[#2A3135] hover:text-[#EDEAE3]'
+                }`}
+              >
+                <span>💸 UPI Transactions</span>
+                {pendingUpiCount > 0 && (
+                  <span className="bg-amber-500 text-[#1a120a] font-mono text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                    {pendingUpiCount}
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab('feedback')}
                 className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   activeTab === 'feedback'
@@ -216,7 +272,7 @@ export default function MasterDashboard() {
             <div className="text-center py-12 text-[#93A0A3] font-mono text-sm">Aggregating Cloud Server Metrics...</div>
           ) : (
             <>
-              {/* Tab 1: Dashboard */}
+              {/* Tab 1: Dashboard Summary */}
               {activeTab === 'dashboard' && (
                 <div className="space-y-8">
                   {/* Summary Metric Cards */}
@@ -229,39 +285,34 @@ export default function MasterDashboard() {
 
                     <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 shadow-xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-500/5 rounded-bl-3xl flex items-center justify-center text-lg text-emerald-400">⚡</div>
-                      <p className="text-[#93A0A3] text-[9px] font-bold uppercase tracking-wider">Paying Subscribed</p>
+                      <p className="text-[#93A0A3] text-[9px] font-bold uppercase tracking-wider">Subscribed Shops</p>
                       <p className="text-3xl font-black text-[#EDEAE3] mt-1">{activeSubs} Shops</p>
                     </div>
 
                     <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-12 h-12 bg-rose-500/5 rounded-bl-3xl flex items-center justify-center text-lg text-rose-455">🚫</div>
-                      <p className="text-[#93A0A3] text-[9px] font-bold uppercase tracking-wider">Suspended Shops</p>
-                      <p className="text-3xl font-black text-[#EDEAE3] mt-1">{suspendedCount} Accounts</p>
+                      <div className="absolute top-0 right-0 w-12 h-12 bg-amber-500/5 rounded-bl-3xl flex items-center justify-center text-lg text-amber-500">⏳</div>
+                      <p className="text-[#93A0A3] text-[9px] font-bold uppercase tracking-wider">Pending UPI Approvals</p>
+                      <p className="text-3xl font-black text-[#EDEAE3] mt-1">{pendingUpiCount} Orders</p>
                     </div>
 
                     <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-12 h-12 bg-amber-500/5 rounded-bl-3xl flex items-center justify-center text-lg text-amber-500">💰</div>
-                      <p className="text-[#93A0A3] text-[9px] font-bold uppercase tracking-wider">Estimated Revenue (MRR)</p>
-                      <p className="text-3xl font-black text-[#EDEAE3] mt-1">₹{mrr.toLocaleString()}</p>
+                      <div className="absolute top-0 right-0 w-12 h-12 bg-rose-500/5 rounded-bl-3xl flex items-center justify-center text-lg text-rose-455">💰</div>
+                      <p className="text-[#93A0A3] text-[9px] font-bold uppercase tracking-wider">Total Live Revenue</p>
+                      <p className="text-3xl font-black text-[#EDEAE3] mt-1">₹{totalEarnings.toLocaleString()}</p>
                     </div>
                   </div>
 
                   {/* Revenue Distribution Chart */}
                   <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 space-y-4 shadow-xl">
-                    <h3 className="text-xs font-bold text-[#93A0A3] uppercase tracking-wider">Plan Subscriptions Distribution</h3>
-                    <div className="grid grid-cols-3 gap-6 pt-4 text-center">
+                    <h3 className="text-xs font-bold text-[#93A0A3] uppercase tracking-wider">Plan Subscriptions</h3>
+                    <div className="grid grid-cols-2 gap-6 pt-4 text-center">
                       <div className="bg-[#14181B] border border-[#38403F]/40 p-5 rounded-2xl">
-                        <p className="text-[#93A0A3] text-[10px] font-bold uppercase">Basic (₹399)</p>
-                        <p className="text-2xl font-extrabold text-[#EDEAE3] mt-1">{basicCount}</p>
+                        <p className="text-[#93A0A3] text-[10px] font-bold uppercase">Free Trial</p>
+                        <p className="text-2xl font-extrabold text-[#EDEAE3] mt-1">{shops.filter(s => s.subscription_status === 'trial').length}</p>
                       </div>
-                      <div className="bg-[#14181B] border-2 border-[#C1793D] p-5 rounded-2xl relative">
-                        <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 bg-[#C1793D] text-[#1a120a] text-[8px] font-black uppercase px-2 py-0.5 rounded-full">POPULAR</div>
-                        <p className="text-[#93A0A3] text-[10px] font-bold uppercase">Pro (₹799)</p>
-                        <p className="text-2xl font-extrabold text-[#E0954F] mt-1">{proCount}</p>
-                      </div>
-                      <div className="bg-[#14181B] border border-[#38403F]/40 p-5 rounded-2xl">
-                        <p className="text-[#93A0A3] text-[10px] font-bold uppercase">Premium (₹1299)</p>
-                        <p className="text-2xl font-extrabold text-[#EDEAE3] mt-1">{premiumCount}</p>
+                      <div className="bg-[#14181B] border-2 border-[#C1793D] p-5 rounded-2xl">
+                        <p className="text-[#93A0A3] text-[10px] font-bold uppercase">Premium Paid</p>
+                        <p className="text-2xl font-extrabold text-[#E0954F] mt-1">{shops.filter(s => s.subscription_status === 'premium').length}</p>
                       </div>
                     </div>
                   </div>
@@ -296,10 +347,10 @@ export default function MasterDashboard() {
                 </div>
               )}
 
-              {/* Tab 2: Shops Management Directory */}
+              {/* Tab 2: Shops Directory */}
               {activeTab === 'shops' && (
                 <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 space-y-4 shadow-xl">
-                  <h3 className="text-xs font-bold text-[#93A0A3] uppercase tracking-wider border-b border-[#38403F]/40 pb-2">Shops & Subscription Management</h3>
+                  <h3 className="text-xs font-bold text-[#93A0A3] uppercase tracking-wider border-b border-[#38403F]/40 pb-2">Shops Directory</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
@@ -331,9 +382,7 @@ export default function MasterDashboard() {
                                 className="bg-[#14181B] border border-[#38403F] rounded-lg px-2 py-1.5 text-xs text-[#EDEAE3] focus:outline-none"
                               >
                                 <option value="trial">Trial (7 Days)</option>
-                                <option value="basic">Basic (₹399)</option>
-                                <option value="pro">Pro (₹799)</option>
-                                <option value="premium">Premium (₹1299)</option>
+                                <option value="premium">Premium (₹1)</option>
                                 <option value="expired">Expired</option>
                               </select>
                             </td>
@@ -382,23 +431,92 @@ export default function MasterDashboard() {
                 </div>
               )}
 
-              {/* Tab 3: Feedback Forms Directory */}
+              {/* Tab 3: UPI Transactions Log */}
+              {activeTab === 'transactions' && (
+                <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 space-y-4 shadow-xl">
+                  <h3 className="text-xs font-bold text-[#93A0A3] uppercase tracking-wider border-b border-[#38403F]/40 pb-2">Manual UPI & Razorpay Transactions</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#14181B] text-[#93A0A3] font-bold uppercase tracking-wider border-b border-[#38403F]">
+                          <th className="py-3 px-4">Shop Name</th>
+                          <th className="py-3 px-4">Amount</th>
+                          <th className="py-3 px-4">Plan</th>
+                          <th className="py-3 px-4">Method</th>
+                          <th className="py-3 px-4">Ref UTR / Payment ID</th>
+                          <th className="py-3 px-4">Date</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#38403F]/20">
+                        {transactions.map((t) => (
+                          <tr key={t.id} className="hover:bg-[#14181B]/30 transition-colors">
+                            <td className="py-4 px-4 font-bold text-[#EDEAE3]">
+                              {t.shops ? t.shops.name : 'Unknown Shop'}
+                            </td>
+                            <td className="py-4 px-4 font-mono font-bold text-[#EDEAE3]">₹{t.amount}</td>
+                            <td className="py-4 px-4 uppercase font-bold text-[#E0954F]">{t.plan}</td>
+                            <td className="py-4 px-4 uppercase font-mono text-[10px]">{t.payment_method}</td>
+                            <td className="py-4 px-4 font-mono text-[#93A0A3]">{t.transaction_ref}</td>
+                            <td className="py-4 px-4 font-mono text-[10px] text-[#93A0A3]">
+                              {new Date(t.created_at).toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                                t.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                                t.status === 'rejected' ? 'bg-rose-500/10 text-rose-455' :
+                                'bg-amber-500/10 text-amber-500'
+                              }`}>
+                                {t.status}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              {t.status === 'pending' && (
+                                <div className="flex justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleVerifyTransaction(t.id, 'approved')}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-[#1a120a] font-bold px-2 py-1 rounded text-[9px] uppercase tracking-wider transition-colors cursor-pointer"
+                                  >
+                                    ✓ Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleVerifyTransaction(t.id, 'rejected')}
+                                    className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-455 border border-rose-500/35 font-bold px-2 py-1 rounded text-[9px] uppercase tracking-wider transition-colors cursor-pointer"
+                                  >
+                                    × Reject
+                                  </button>
+                                </div>
+                              )}
+                              {t.status === 'approved' && (
+                                <span className="text-[10px] text-emerald-450 font-mono">Receipt Invoiced</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 4: Feedback Hub */}
               {activeTab === 'feedback' && (
                 <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 space-y-4 shadow-xl">
-                  <h3 className="text-xs font-bold text-[#93A0A3] uppercase tracking-wider border-b border-[#38403F]/40 pb-2">Feedback & Suggestions Log</h3>
+                  <h3 className="text-xs font-bold text-[#93A0A3] uppercase tracking-wider border-b border-[#38403F]/40 pb-2">Feedback Logs</h3>
                   <div className="space-y-4">
                     {feedbacks.length === 0 ? (
-                      <p className="text-center py-12 text-[#93A0A3] text-xs font-mono">No feedbacks submitted by users yet.</p>
+                      <p className="text-center py-12 text-[#93A0A3] text-xs font-mono">No feedbacks submitted yet.</p>
                     ) : (
                       feedbacks.map((feed) => (
                         <div key={feed.id} className="bg-[#14181B] border border-[#38403F]/30 p-5 rounded-2xl space-y-3">
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="font-extrabold text-sm text-[#EDEAE3]">
-                                {Array.isArray(feed.shops) ? (feed.shops as any)[0]?.name : (feed.shops as any)?.name || 'Unknown Shop'}
+                                {feed.shops ? feed.shops.name : 'Unknown Shop'}
                               </h4>
                               <p className="text-[10px] text-[#93A0A3] mt-0.5">
-                                Submitted by: {Array.isArray(feed.workers) ? (feed.workers as any)[0]?.name : (feed.workers as any)?.name || 'Generic Worker'}
+                                Submitted by: {feed.workers ? feed.workers.name : 'Staff Counter'}
                               </p>
                             </div>
                             <span className="text-[10px] text-[#93A0A3] font-mono">{new Date(feed.created_at).toLocaleString('en-IN')}</span>
@@ -448,23 +566,6 @@ export default function MasterDashboard() {
                 <div className="bg-[#14181B] border border-[#38403F]/40 p-4 rounded-2xl">
                   <p className="text-[#93A0A3] text-[9px] font-bold uppercase">Contractor Dues</p>
                   <p className="text-xl font-bold mt-0.5 text-rose-455">₹{selectedShop.duesSum.toLocaleString()}</p>
-                </div>
-              </div>
-
-              <div className="bg-[#14181B] border border-[#38403F]/40 p-4 rounded-2xl space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-[#93A0A3]">Subscription Plan:</span>
-                  <span className="font-bold text-[#E0954F] uppercase">{selectedShop.subscription_status || 'Trial'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#93A0A3]">Suspended State:</span>
-                  <span className={`font-bold uppercase ${selectedShop.is_suspended ? 'text-rose-455' : 'text-emerald-450'}`}>
-                    {selectedShop.is_suspended ? 'Yes (Suspended)' : 'No (Active)'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#93A0A3]">Trial Ending Timestamp:</span>
-                  <span className="font-mono">{new Date(selectedShop.trial_ends_at).toLocaleDateString('en-IN')}</span>
                 </div>
               </div>
 

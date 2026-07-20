@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const { paymentId, shopId, plan } = await req.json();
 
-    if (!shopId || !plan) {
+    if (!shopId || !plan || !paymentId) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const newSubscriptionEnd = new Date();
     newSubscriptionEnd.setDate(newSubscriptionEnd.getDate() + 30);
 
-    // Update shop subscription status and trial period
+    // 1. Update shop subscription status and trial period
     const { error: shopErr } = await supabase
       .from('shops')
       .update({
@@ -43,10 +43,25 @@ export async function POST(req: NextRequest) {
 
     if (shopErr) throw shopErr;
 
-    // Log the transaction in stock movements or audit logs if needed, or simply return success
+    // 2. Log in billing_transactions as auto-approved Razorpay transaction
+    const { error: txnErr } = await supabase
+      .from('billing_transactions')
+      .insert({
+        shop_id: shopId,
+        amount: 1, // INR 1 testing price
+        plan,
+        payment_method: 'razorpay',
+        transaction_ref: paymentId,
+        status: 'approved'
+      });
+
+    if (txnErr) {
+      console.warn('Logging billing transaction row failed:', txnErr.message);
+    }
+
     return NextResponse.json({ success: true, message: 'Subscription activated.' });
 
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 550 });
   }
 }

@@ -317,6 +317,7 @@ export default function OwnerDashboard() {
             <NavLink href="/owner/reports" label={translations[lang].reportsLabel} description={translations[lang].reportsDesc} icon="📊" badge="GSTR-1/3B Ready" />
             <NavLink href="/owner/reconciliation" label={translations[lang].reconciliationLabel} description={translations[lang].reconciliationDesc} icon="🔍" badge="Loss Audit" />
             <NavLink href="/owner/staff" label={translations[lang].registerStaff} description={translations[lang].registeredWorkers} icon="👥" badge="Logs" />
+            <NavLink href="/owner/finance" label="Portal Finance Control" description="Manage overall cash flows, sales inflows, expenses, and capital reserves." icon="💰" badge="Cashflow Hub" />
             <NavLink href="/owner/billing" label="Billing & Subscriptions" description="Select pricing plans, manage subscriptions, and verify payment gateways." icon="💳" badge="₹1 Test Mode" />
             
             <button
