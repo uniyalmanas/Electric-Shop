@@ -315,8 +315,9 @@ export default function OwnerDashboard() {
             <NavLink href="/owner/purchases/review" label="Invoice OCR Ingestion" description="Scan invoice images or PDFs via Gemini OCR, map extracted line items, and update stock counts." icon="🧾" badge="Gemini AI" />
             <NavLink href="/owner/expenses" label={translations[lang].expensesLabel} description={translations[lang].expensesDesc} icon="📉" badge="Finance Log" />
             <NavLink href="/owner/reports" label={translations[lang].reportsLabel} description={translations[lang].reportsDesc} icon="📊" badge="GSTR-1/3B Ready" />
-             <NavLink href="/owner/reconciliation" label={translations[lang].reconciliationLabel} description={translations[lang].reconciliationDesc} icon="🔍" badge="Loss Audit" />
+            <NavLink href="/owner/reconciliation" label={translations[lang].reconciliationLabel} description={translations[lang].reconciliationDesc} icon="🔍" badge="Loss Audit" />
             <NavLink href="/owner/staff" label={translations[lang].registerStaff} description={translations[lang].registeredWorkers} icon="👥" badge="Logs" />
+            <NavLink href="/owner/billing" label="Billing & Subscriptions" description="Select pricing plans, manage subscriptions, and verify payment gateways." icon="💳" badge="₹1 Test Mode" />
             
             <button
               onClick={() => setShowSettingsModal(true)}

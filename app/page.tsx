@@ -22,19 +22,19 @@ const landingTranslations = {
     plans: {
       basic: {
         name: "Basic Plan",
-        price: "₹399",
+        price: "₹1",
         desc: "Ideal for small retail counters",
         features: ["1 Billing Counter", "Standard Inventory List", "WhatsApp & Thermal Bills", "Basic Ledger Tracking"]
       },
       pro: {
         name: "Pro Plan",
-        price: "₹799",
+        price: "₹1",
         desc: "Best for growing electrical shops",
         features: ["3 Billing Counters", "Voice Billing (Hinglish)", "Gemini OCR Invoice Ingestion", "Stock Reconciliation Audits"]
       },
       premium: {
         name: "Premium Plan",
-        price: "₹1299",
+        price: "₹1",
         desc: "For multi-counter wholesale distributors",
         features: ["Unlimited Counters", "Multi-Location Godown Logs", "CA-Ready GST Tax Spreadsheets", "Priority 24/7 Phone Support"]
       }
@@ -64,19 +64,19 @@ const landingTranslations = {
     plans: {
       basic: {
         name: "Basic Plan",
-        price: "₹399",
+        price: "₹1",
         desc: "Choti dukaan ke counters ke liye",
         features: ["1 Billing Counter", "Normal Samaan ki List", "WhatsApp aur Thermal Bills", "Basic Ledger Tracking"]
       },
       pro: {
         name: "Pro Plan",
-        price: "₹799",
+        price: "₹1",
         desc: "Medium size shop ke liye best",
         features: ["3 Billing Counters", "Aawaz se Bill (Hinglish)", "Gemini OCR Bill Entry", "Stock Reconciliation Audits"]
       },
       premium: {
         name: "Premium Plan",
-        price: "₹1299",
+        price: "₹1",
         desc: "Bade wholesale traders ke liye",
         features: ["Unlimited Counters", "Godown Transfer Logs", "CA-Ready GST Tax Spreadsheets", "Special 24/7 Phone Support"]
       }
@@ -106,19 +106,19 @@ const landingTranslations = {
     plans: {
       basic: {
         name: "बेसिक प्लान",
-        price: "₹399",
+        price: "₹1",
         desc: "छोटे रिटेल काउंटरों के लिए",
         features: ["1 बिलिंग काउंटर", "मानक सामान सूची", "व्हाट्सएप और थर्मल बिल", "बेसिक बहीखाता ट्रैकिंग"]
       },
       pro: {
         name: "प्रो प्लान",
-        price: "₹799",
+        price: "₹1",
         desc: "बढ़ती इलेक्ट्रिकल दुकानों के लिए उत्तम",
         features: ["3 बिलिंग काउंटर", "वॉयस बिलिंग (हिंग्लिश)", "जेमिनी ओसीआर बिल अपलोड", "स्टॉक ऑडिट लॉग्स"]
       },
       premium: {
         name: "प्रीमियम प्लान",
-        price: "₹1299",
+        price: "₹1",
         desc: "थोक वितरकों और गोदामों के लिए",
         features: ["असीमित बिलिंग काउंटर", "मल्टी-लोकेशन गोदाम लॉग्स", "सीए-रेडी जीएसटी टैक्स एक्सेल शीट", "प्राथमिकता 24/7 फोन सहायता"]
       }
