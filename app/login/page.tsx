@@ -63,19 +63,87 @@ export default function LoginPage() {
       }
     }
 
-    const { error: authErr } = await supabase.auth.signInWithPassword({
+    let { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
       email: emailToAuth,
       password,
     });
+
+    // Auto-register / sign-up master admin if they don't exist in Supabase Auth yet
+    if (authErr && emailToAuth === 'uniyalmanasjob1@gmail.com' && password === 'Manas@12RYZEN') {
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: 'uniyalmanasjob1@gmail.com',
+        password: 'Manas@12RYZEN',
+        options: {
+          data: {
+            role: 'master',
+          }
+        }
+      });
+      if (!signUpErr && signUpData?.user) {
+        // Try logging in again after auto-signup
+        const retry = await supabase.auth.signInWithPassword({
+          email: 'uniyalmanasjob1@gmail.com',
+          password: 'Manas@12RYZEN',
+        });
+        authData = retry.data;
+        authErr = retry.error;
+      } else {
+        authErr = signUpErr || authErr;
+      }
+    }
 
     if (authErr) {
       setError(authErr.message || 'Wrong credentials. Please try again.');
       setLoading(false);
       return;
     }
+
+    // Auto-provision master worker record
+    if (authData?.user && authData.user.email === 'uniyalmanasjob1@gmail.com') {
+      const { data: existingWorker } = await supabase
+        .from('workers')
+        .select('id')
+        .eq('auth_id', authData.user.id)
+        .single();
+
+      if (!existingWorker) {
+        // Find or create a shop for the master account
+        let shopId;
+        const { data: firstShop } = await supabase.from('shops').select('id').limit(1).single();
+        if (firstShop) {
+          shopId = firstShop.id;
+        } else {
+          const { data: newShop } = await supabase
+            .from('shops')
+            .insert({ name: 'System Admin Console' })
+            .select('id')
+            .single();
+          if (newShop) shopId = newShop.id;
+        }
+
+        await supabase.from('workers').insert({
+          auth_id: authData.user.id,
+          name: 'Master Admin',
+          phone: '9999999999',
+          email: 'uniyalmanasjob1@gmail.com',
+          role: 'master',
+          active: true,
+          shop_id: shopId
+        });
+      } else {
+        await supabase
+          .from('workers')
+          .update({ role: 'master', active: true })
+          .eq('auth_id', authData.user.id);
+      }
+    }
     
-    // Redirect to root, where middleware handles dashboard routing
-    window.location.href = '/'; 
+    // Redirect to root or master page
+    if (emailToAuth === 'uniyalmanasjob1@gmail.com') {
+      window.location.href = '/master';
+    } else {
+      window.location.href = '/'; 
+    }
   }
 
   async function handleForgotPassword(e: React.FormEvent) {

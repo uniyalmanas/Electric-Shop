@@ -19,7 +19,7 @@ export default function OwnerDashboard() {
   const supabase = createClient();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lang, setLang] = useState<'en' | 'hinglish'>('en');
+  const [lang, setLang] = useState<'en' | 'hinglish' | 'hindi'>('en');
 
   // Shop Settings States
   const [shopId, setShopId] = useState('');
@@ -27,6 +27,12 @@ export default function OwnerDashboard() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newShopName, setNewShopName] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Feedback States
+  const [feedbackContent, setFeedbackContent] = useState('');
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackSuccessMsg, setFeedbackSuccessMsg] = useState('');
 
   useEffect(() => {
     const cachedLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish';
@@ -46,12 +52,40 @@ export default function OwnerDashboard() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
       const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 1. Fetch worker profile to check role and shop context
+      const { data: worker } = await supabase
+        .from('workers')
+        .select('role, shop_id, shops(name)')
+        .eq('auth_id', user.id)
+        .single();
+
+      if (!worker) return;
+
+      let targetShopId = worker.shop_id;
+      let targetShopName = worker.shops ? (worker.shops as any).name : '';
+
+      // Check if master admin is impersonating another shop
+      const impersonated = localStorage.getItem('electrostock_impersonated_shop_id');
+      if (worker.role === 'master' && impersonated) {
+        targetShopId = impersonated;
+        const { data: impShop } = await supabase.from('shops').select('name').eq('id', impersonated).single();
+        if (impShop) targetShopName = impShop.name;
+      }
+
+      setShopId(targetShopId);
+      setShopName(targetShopName);
+      setNewShopName(targetShopName);
+
+      // Fetch statistics filtered strictly by targetShopId
       const [{ data: sales }, { data: productsData }, { data: custLedger }, { data: suppLedger }] =
         await Promise.all([
-          supabase.from('sales').select('total_amount, amount_paid, created_at').gte('created_at', sevenDaysAgoStr),
-          supabase.from('products').select('id, current_stock, reorder_threshold, category'),
-          supabase.from('customer_ledger').select('amount, type'),
-          supabase.from('supplier_ledger').select('amount, type'),
+          supabase.from('sales').select('total_amount, amount_paid, created_at').eq('shop_id', targetShopId).gte('created_at', sevenDaysAgoStr),
+          supabase.from('products').select('id, current_stock, reorder_threshold, category').eq('shop_id', targetShopId),
+          supabase.from('customer_ledger').select('amount, type').eq('shop_id', targetShopId),
+          supabase.from('supplier_ledger').select('amount, type').eq('shop_id', targetShopId),
         ]);
 
       // Filter today's sales
@@ -113,24 +147,6 @@ export default function OwnerDashboard() {
         count,
       })).sort((a, b) => b.count - a.count);
 
-      // Fetch shop details for active user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: worker } = await supabase
-          .from('workers')
-          .select('shop_id, shops(name)')
-          .eq('auth_id', user.id)
-          .single();
-        if (worker && worker.shop_id) {
-          setShopId(worker.shop_id);
-          if (worker.shops) {
-            const name = (worker.shops as any).name;
-            setShopName(name);
-            setNewShopName(name);
-          }
-        }
-      }
-
       setSummary({
         todaySales,
         todayCashIn,
@@ -172,6 +188,34 @@ export default function OwnerDashboard() {
       alert('Error: ' + err.message);
     } finally {
       setSavingSettings(false);
+    }
+  }
+
+  async function handleSubmitFeedback(e: React.FormEvent) {
+    e.preventDefault();
+    if (!feedbackContent.trim()) return;
+    setSubmittingFeedback(true);
+    setFeedbackSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/feedbacks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: feedbackContent, rating: feedbackRating }),
+      });
+
+      if (res.ok) {
+        setFeedbackSuccessMsg('Thank you! Your feedback has been sent to our master support team.');
+        setFeedbackContent('');
+        setFeedbackRating(5);
+      } else {
+        alert('Failed to submit feedback. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error submitting feedback.');
+    } finally {
+      setSubmittingFeedback(false);
     }
   }
 
@@ -330,6 +374,53 @@ export default function OwnerDashboard() {
                 </button>
               </div>
             </form>
+
+            {/* Feedback & Suggestions Form */}
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+              <h3 className="text-sm font-bold text-[#E0954F]">Submit Feedback & Suggestions</h3>
+              {feedbackSuccessMsg ? (
+                <p className="text-xs text-emerald-500 font-bold bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">{feedbackSuccessMsg}</p>
+              ) : (
+                <form onSubmit={handleSubmitFeedback} className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">Rating</label>
+                    <select
+                      value={feedbackRating}
+                      onChange={(e) => setFeedbackRating(Number(e.target.value))}
+                      className="w-full bg-slate-50 dark:bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-[#EDEAE3] focus:outline-none"
+                    >
+                      <option value={5}>⭐️⭐️⭐️⭐️⭐️ Excellent</option>
+                      <option value={4}>⭐️⭐️⭐️⭐️ Good</option>
+                      <option value={3}>⭐️⭐️⭐️ Average</option>
+                      <option value={2}>⭐️⭐️ Poor</option>
+                      <option value={1}>⭐️ Terrible</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1">Message</label>
+                    <textarea
+                      required
+                      value={feedbackContent}
+                      onChange={(e) => setFeedbackContent(e.target.value)}
+                      rows={3}
+                      className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-650 focus:outline-none focus:border-[#C1793D] transition-colors"
+                      placeholder="Share your suggestions, feature requests, or feedback..."
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submittingFeedback}
+                      className="bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-bold px-4 py-2 rounded-xl text-xs disabled:opacity-50 cursor-pointer"
+                    >
+                      {submittingFeedback ? 'Submitting...' : 'Submit'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -384,3 +384,29 @@ create index idx_sales_shop on sales(shop_id, created_at desc);
 create index idx_purchases_shop on purchases(shop_id, created_at desc);
 create index idx_customer_ledger_customer on customer_ledger(customer_id, due_date);
 create index idx_supplier_ledger_supplier on supplier_ledger(supplier_id, due_date);
+
+-- ============================================================
+-- FEEDBACKS & SUGGESTIONS TABLE
+-- ============================================================
+create table feedbacks (
+  id uuid default gen_random_uuid() primary key,
+  shop_id uuid references shops(id) on delete cascade not null,
+  worker_id uuid references workers(id) on delete cascade not null,
+  content text not null,
+  rating int,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table feedbacks enable row level security;
+
+create policy feedbacks_insert on feedbacks
+  for insert with check (is_shop_member(shop_id));
+
+create policy feedbacks_select_all on feedbacks
+  for select using (
+    is_shop_member(shop_id) or
+    exists (
+      select 1 from workers 
+      where workers.auth_id = auth.uid() and workers.role = 'master'
+    )
+  );

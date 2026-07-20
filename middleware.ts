@@ -36,12 +36,13 @@ export async function middleware(request: NextRequest) {
   // Route definitions
   const isOwnerPath = request.nextUrl.pathname.startsWith('/owner');
   const isStaffPath = request.nextUrl.pathname.startsWith('/staff');
+  const isMasterPath = request.nextUrl.pathname.startsWith('/master');
   const isLoginPath = request.nextUrl.pathname === '/login';
   const isSignupPath = request.nextUrl.pathname === '/signup';
 
   if (!user) {
     // If not authenticated and visiting protected pages, redirect to login
-    if (isOwnerPath || isStaffPath) {
+    if (isOwnerPath || isStaffPath || isMasterPath) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   } else {
@@ -64,14 +65,22 @@ export async function middleware(request: NextRequest) {
 
     // Redirect authenticated users trying to hit login/signup pages to their dashboards
     if (isLoginPath || isSignupPath) {
+      if (role === 'master') {
+        return NextResponse.redirect(new URL('/master', request.url));
+      }
       if (role === 'staff') {
         return NextResponse.redirect(new URL('/staff', request.url));
       }
       return NextResponse.redirect(new URL('/owner', request.url));
     }
 
-    // Enforce role-based access: ONLY explicitly authenticated owners can access /owner/*
-    if (isOwnerPath && role !== 'owner') {
+    // Enforce master path restriction
+    if (isMasterPath && role !== 'master') {
+      return NextResponse.redirect(new URL('/owner', request.url));
+    }
+
+    // Enforce owner-only path restriction (allow master to bypass for admin view)
+    if (isOwnerPath && role !== 'owner' && role !== 'master') {
       return NextResponse.redirect(new URL('/staff', request.url));
     }
   }
