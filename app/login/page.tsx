@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 
+async function sha256(message: string) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -63,16 +70,20 @@ export default function LoginPage() {
       }
     }
 
-    const masterEmail = process.env.NEXT_PUBLIC_MASTER_EMAIL || '';
-    const masterPassword = process.env.NEXT_PUBLIC_MASTER_PASSWORD || '';
+    const emailHash = await sha256(emailToAuth.trim().toLowerCase());
+    const passwordHash = await sha256(password);
+
+    const isMaster = 
+      emailHash === 'd36e8dadc9667e4ac417598f6cd50444139d183bd20a276abc6b70dd0689548c' && 
+      passwordHash === '1e2460a28591293839cf157f0a9ca9f9d737aeca2b6a4f52ae27b80c44f83ccd';
 
     // If master admin attempt, trigger server-side auto-registration/confirmation first
-    if (masterEmail && emailToAuth === masterEmail && password === masterPassword) {
+    if (isMaster) {
       try {
         await fetch('/api/auth/master-init', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: masterEmail, password: masterPassword }),
+          body: JSON.stringify({ email: emailToAuth, password: password }),
         });
       } catch (err) {
         console.error('Master auto-init failed, continuing login flow:', err);
@@ -91,7 +102,7 @@ export default function LoginPage() {
     }
 
     // Auto-provision master worker record
-    if (authData?.user && masterEmail && authData.user.email === masterEmail) {
+    if (authData?.user && isMaster) {
       const { data: existingWorker } = await supabase
         .from('workers')
         .select('id')
@@ -117,7 +128,7 @@ export default function LoginPage() {
           auth_id: authData.user.id,
           name: 'Master Admin',
           phone: '9999999999',
-          email: masterEmail,
+          email: emailToAuth.trim().toLowerCase(),
           role: 'master',
           active: true,
           shop_id: shopId
@@ -131,7 +142,7 @@ export default function LoginPage() {
     }
     
     // Redirect to root or master page
-    if (masterEmail && emailToAuth === masterEmail) {
+    if (isMaster) {
       window.location.href = '/master';
     } else {
       window.location.href = '/'; 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,18 +8,22 @@ const supabaseAdmin = createClient(
   { auth: { persistSession: false } }
 );
 
+const MASTER_EMAIL_HASH = 'd36e8dadc9667e4ac417598f6cd50444139d183bd20a276abc6b70dd0689548c';
+const MASTER_PASSWORD_HASH = '1e2460a28591293839cf157f0a9ca9f9d737aeca2b6a4f52ae27b80c44f83ccd';
+
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
 
-    const masterEmail = process.env.NEXT_PUBLIC_MASTER_EMAIL;
-    const masterPassword = process.env.NEXT_PUBLIC_MASTER_PASSWORD;
-
-    if (!masterEmail || !masterPassword) {
-      return NextResponse.json({ error: 'Master credentials are not configured in environment variables.' }, { status: 500 });
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    if (email !== masterEmail || password !== masterPassword) {
+    // Verify using SHA-256 hashes to keep credentials secure and zero-env
+    const emailHash = crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+
+    if (emailHash !== MASTER_EMAIL_HASH || passwordHash !== MASTER_PASSWORD_HASH) {
       return NextResponse.json({ error: 'Invalid master credentials.' }, { status: 401 });
     }
 
@@ -28,7 +33,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to search users: ' + listErr.message }, { status: 500 });
     }
 
-    const existingUser = usersList.users.find(u => u.email === masterEmail);
+    const targetEmail = email.trim().toLowerCase();
+    const existingUser = usersList.users.find(u => u.email === targetEmail);
 
     if (existingUser) {
       // Master user exists. Force confirm their email!
@@ -42,8 +48,8 @@ export async function POST(req: NextRequest) {
     } else {
       // Master user does not exist. Create them with auto-confirmation.
       const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email: masterEmail,
-        password: masterPassword,
+        email: targetEmail,
+        password: password,
         email_confirm: true,
         user_metadata: { role: 'master' }
       });
