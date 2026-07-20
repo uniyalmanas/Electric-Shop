@@ -9,7 +9,7 @@ export function createClient() {
 }
 
 // Types matching schema.sql — keep in sync as the schema evolves
-export type WorkerRole = 'owner' | 'staff';
+export type WorkerRole = 'owner' | 'staff' | 'master';
 
 export interface Worker {
   id: string;

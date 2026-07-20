@@ -37,6 +37,7 @@ export default function ExpensesPage() {
   const [expAmount, setExpAmount] = useState('');
   const [expNotes, setExpNotes] = useState('');
   const [savingExpense, setSavingExpense] = useState(false);
+  const [workerId, setWorkerId] = useState('');
 
   useEffect(() => {
     const now = new Date();
@@ -50,12 +51,13 @@ export default function ExpensesPage() {
       if (user) {
         const { data: worker } = await supabase
           .from('workers')
-          .select('shop_id')
+          .select('id, shop_id')
           .eq('auth_id', user.id)
           .single();
         
         if (worker && worker.shop_id) {
           setShopId(worker.shop_id);
+          setWorkerId(worker.id);
           fetchData(worker.shop_id, firstDay, lastDay);
         }
       } else {
@@ -135,15 +137,11 @@ export default function ExpensesPage() {
   async function handleAddExpense(e: React.FormEvent) {
     e.preventDefault();
     if (!expAmount || !shopId) return;
-    setSavingExpense(true);
-
-    const { data: workers } = await supabase.from('workers').select('id').limit(1);
-    if (!workers || workers.length === 0) {
-      alert('Requires at least one worker.');
-      setSavingExpense(false);
+    if (!workerId) {
+      alert('No active worker session found.');
       return;
     }
-    const workerId = workers[0].id;
+    setSavingExpense(true);
 
     const { error } = await supabase.from('expenses').insert({
       shop_id: shopId,

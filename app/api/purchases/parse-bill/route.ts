@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   // 2. Fetch worker and verify role is owner
   const { data: worker } = await supabase
     .from('workers')
-    .select('role')
+    .select('id, role, shop_id')
     .eq('auth_id', user.id)
     .single();
 
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden: Only owners can parse supplier bills' }, { status: 403 });
   }
 
+  const shopId = worker.shop_id;
   const apiKey = process.env.GOOGLE_API_KEY;
 
   try {
@@ -34,7 +35,8 @@ export async function POST(req: NextRequest) {
     // Fetch product catalog for fuzzy matching
     const { data: productsData } = await supabase
       .from('products')
-      .select('id, name, brand, rating, cost_price, selling_price');
+      .select('id, name, brand, rating, cost_price, selling_price')
+      .eq('shop_id', shopId);
     
     const catalogJson = productsData?.map(p => ({
       id: p.id,
@@ -187,7 +189,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Resolve supplier_id
     let supplierId = null;
-    const { data: suppliers } = await supabase.from('suppliers').select('id, name');
+    const { data: suppliers } = await supabase.from('suppliers').select('id, name').eq('shop_id', shopId);
     
     if (suppliers && suppliers.length > 0) {
       // Find case-insensitive closest match or fallback to first supplier
@@ -198,24 +200,15 @@ export async function POST(req: NextRequest) {
       supplierId = matched ? matched.id : suppliers[0].id;
     } else {
       // Create a default fallback supplier if none exist
-      const { data: shops } = await supabase.from('shops').select('id').limit(1);
-      if (shops && shops.length > 0) {
-        const { data: newSup } = await supabase.from('suppliers').insert({
-          shop_id: shops[0].id,
-          name: parsedInvoice.supplier_name || 'OCR Parsed Supplier',
-        }).select().single();
-        if (newSup) supplierId = newSup.id;
-      }
+      const { data: newSup } = await supabase.from('suppliers').insert({
+        shop_id: shopId,
+        name: parsedInvoice.supplier_name || 'OCR Parsed Supplier',
+      }).select().single();
+      if (newSup) supplierId = newSup.id;
     }
 
     if (!supplierId) {
       return NextResponse.json({ error: 'Requires at least one supplier registered in database.' }, { status: 400 });
-    }
-
-    // Get a default shop ID
-    const { data: defaultShop } = await supabase.from('shops').select('id').limit(1).single();
-    if (!defaultShop) {
-      return NextResponse.json({ error: 'No shop configured.' }, { status: 500 });
     }
 
     // 3. Log a pending review purchase
@@ -223,7 +216,7 @@ export async function POST(req: NextRequest) {
     const { data: purchase, error: purchaseErr } = await supabase
       .from('purchases')
       .insert({
-        shop_id: defaultShop.id,
+        shop_id: shopId,
         supplier_id: supplierId,
         has_bill: true,
         supplier_invoice_number: parsedInvoice.invoice_number || null,

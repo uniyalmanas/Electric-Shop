@@ -23,9 +23,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Shop not found' }, { status: 404 });
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || shop.owner_auth_id !== user.id) {
-    return NextResponse.json({ error: 'Unauthorized to seed this shop' }, { status: 403 });
+  const authHeader = req.headers.get('Authorization');
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const isServiceRole = authHeader === `Bearer ${serviceKey}`;
+
+  if (!isServiceRole) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || shop.owner_auth_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized to seed this shop' }, { status: 403 });
+    }
   }
 
   try {

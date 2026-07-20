@@ -81,10 +81,13 @@ export async function POST(req: NextRequest) {
     if (seedCatalog) {
       try {
         const origin = req.nextUrl.origin;
-        // Call seed route internally using server-to-server fetch
+        // Call seed route internally using server-to-server fetch with service key auth
         await fetch(`${origin}/api/shops/seed`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+          },
           body: JSON.stringify({ shop_id: shop.id })
         });
       } catch (seedErr) {

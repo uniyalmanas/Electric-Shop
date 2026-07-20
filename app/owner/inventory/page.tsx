@@ -41,6 +41,7 @@ export default function InventoryPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [shopId, setShopId] = useState<string>('');
+  const [workerId, setWorkerId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -117,12 +118,13 @@ export default function InventoryPage() {
       if (user) {
         const { data: worker } = await supabase
           .from('workers')
-          .select('shop_id')
+          .select('id, shop_id')
           .eq('auth_id', user.id)
           .single();
         
         if (worker && worker.shop_id) {
           setShopId(worker.shop_id);
+          setWorkerId(worker.id);
           fetchProducts(worker.shop_id);
           
           // Fetch locations and stocks on init
@@ -212,12 +214,10 @@ export default function InventoryPage() {
       return;
     }
 
-    const { data: workers } = await supabase.from('workers').select('id').limit(1);
-    if (!workers || workers.length === 0) {
-      alert('No staff worker registered in database to attribute log entry.');
+    if (!workerId) {
+      alert('No active worker session found.');
       return;
     }
-    const workerId = workers[0].id;
 
     setIsTransferring(true);
 
@@ -325,12 +325,11 @@ export default function InventoryPage() {
       alert('Error adding product: ' + error.message);
     } else {
       if (payload.current_stock > 0 && data) {
-        const { data: workers } = await supabase.from('workers').select('id').limit(1);
-        if (workers && workers.length > 0) {
+        if (workerId) {
           await supabase.from('stock_movements').insert({
             shop_id: shopId,
             product_id: data.id,
-            worker_id: workers[0].id,
+            worker_id: workerId,
             quantity: payload.current_stock,
             direction: 'in',
             reason: 'reconciliation_adjustment',
@@ -385,12 +384,10 @@ export default function InventoryPage() {
       ? activeProduct.current_stock + qty 
       : Math.max(0, activeProduct.current_stock - qty);
 
-    const { data: workers } = await supabase.from('workers').select('id').limit(1);
-    if (!workers || workers.length === 0) {
-      alert('No staff worker registered in database to credit log entry.');
+    if (!workerId) {
+      alert('No active worker session found.');
       return;
     }
-    const workerId = workers[0].id;
 
     const [{ error: updateErr }] = await Promise.all([
       supabase.from('products').update({ current_stock: newStock }).eq('id', activeProduct.id),
@@ -430,11 +427,8 @@ export default function InventoryPage() {
       return;
     }
 
-    const { data: workers } = await supabase.from('workers').select('id').limit(1);
-    const workerId = workers?.[0]?.id;
-
     if (!workerId) {
-      alert('Must have at least one worker created to link count audits.');
+      alert('No active worker session found to link count audits.');
       return;
     }
 

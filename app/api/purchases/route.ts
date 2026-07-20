@@ -191,20 +191,37 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const supabase = createServerSupabaseClient();
-  const body = await req.json();
 
+  // 1. Authenticate user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Please log in' }, { status: 401 });
+  }
+
+  // 2. Fetch worker and verify role is owner
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id, role, shop_id')
+    .eq('auth_id', user.id)
+    .single();
+
+  if (!worker) {
+    return NextResponse.json({ error: 'Forbidden: Worker profile not found' }, { status: 403 });
+  }
+
+  if (worker.role !== 'owner') {
+    return NextResponse.json({ error: 'Forbidden: Only owners can manage purchases' }, { status: 403 });
+  }
+
+  const workerId = worker.id;
+  const workerShopId = worker.shop_id;
+
+  const body = await req.json();
   const { purchase_id, items } = body;
 
   if (!purchase_id || !items || !items.length) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
-
-  // Get active worker for attribution
-  const { data: workers } = await supabase.from('workers').select('id').limit(1);
-  if (!workers || workers.length === 0) {
-    return NextResponse.json({ error: 'Requires at least one worker.' }, { status: 400 });
-  }
-  const workerId = workers[0].id;
 
   // Fetch purchase details
   const { data: purchase, error: purErr } = await supabase
@@ -218,6 +235,10 @@ export async function PUT(req: NextRequest) {
   }
 
   const shopId = purchase.shop_id;
+
+  if (shopId !== workerShopId) {
+    return NextResponse.json({ error: 'Forbidden: Purchase does not belong to your shop' }, { status: 403 });
+  }
 
   // Fetch default location (Counter) for this shop
   const { data: defaultLoc } = await supabase

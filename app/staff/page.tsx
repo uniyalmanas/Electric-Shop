@@ -80,6 +80,7 @@ export default function StaffDashboard() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
   const [shopName, setShopName] = useState<string>('ElectroStock');
+  const [workerId, setWorkerId] = useState<string>('');
 
   useEffect(() => {
     // Synchronously check localStorage on the client to avoid flash
@@ -93,12 +94,13 @@ export default function StaffDashboard() {
       if (user) {
         const { data: worker } = await supabase
           .from('workers')
-          .select('shop_id, shops(name)')
+          .select('id, shop_id, shops(name)')
           .eq('auth_id', user.id)
           .single();
         
         if (worker && worker.shop_id) {
           setShopId(worker.shop_id);
+          setWorkerId(worker.id);
           if (worker.shops) {
             const name = (worker.shops as any).name;
             setShopName(name);
@@ -413,9 +415,8 @@ Thank you for purchasing with us!`;
     if (!selectedAdjustItem || !adjustQty) return;
     setSavingAdjust(true);
 
-    const { data: workers } = await supabase.from('workers').select('id').limit(1);
-    if (!workers || workers.length === 0) {
-      alert('Create worker row in database.');
+    if (!workerId) {
+      alert('No active worker session found.');
       setSavingAdjust(false);
       return;
     }
@@ -425,7 +426,7 @@ Thank you for purchasing with us!`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         product_id: selectedAdjustItem.id,
-        worker_id: workers[0].id,
+        worker_id: workerId,
         quantity: Number(adjustQty),
         direction: adjustDirection,
         reason: adjustReason,
@@ -471,10 +472,11 @@ Thank you for purchasing with us!`;
   // Submit Sale Invoice
   async function checkoutSale() {
     if (cart.length === 0) return;
+    if (!workerId) {
+      alert('No active worker session found.');
+      return;
+    }
     setSavingSale(true);
-
-    const { data: workers } = await supabase.from('workers').select('id').limit(1);
-    const workerId = workers?.[0]?.id;
 
     const payload = {
       customer_id: selectedCustomer?.id || null,

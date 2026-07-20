@@ -15,15 +15,33 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await audioFile.arrayBuffer());
     const base64Audio = buffer.toString('base64');
 
-    // Fetch database catalog products and customers to match
+    // Authenticate user and get shop_id scoping
     const supabase = createServerSupabaseClient();
-    const [{ data: products }, { data: customers }, { data: shops }] = await Promise.all([
-      supabase.from('products').select('id, name, brand, rating, current_stock, unit_type, selling_price, cost_price'),
-      supabase.from('customers').select('id, name, type'),
-      supabase.from('shops').select('name').limit(1),
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized: Please log in' }, { status: 401 });
+    }
+
+    const { data: worker } = await supabase
+      .from('workers')
+      .select('id, shop_id')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (!worker) {
+      return NextResponse.json({ error: 'Forbidden: Worker profile not found' }, { status: 403 });
+    }
+
+    const shopId = worker.shop_id;
+
+    // Fetch database catalog products and customers to match, scoped by shopId
+    const [{ data: products }, { data: customers }, { data: shop }] = await Promise.all([
+      supabase.from('products').select('id, name, brand, rating, current_stock, unit_type, selling_price, cost_price').eq('shop_id', shopId),
+      supabase.from('customers').select('id, name, type').eq('shop_id', shopId),
+      supabase.from('shops').select('name').eq('id', shopId).maybeSingle(),
     ]);
 
-    const shopName = shops && shops.length > 0 ? shops[0].name : 'ElectroStock';
+    const shopName = shop ? shop.name : 'ElectroStock';
 
     const catalogProducts = (products || []).map(p => ({
       id: p.id,

@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { persistSession: false } }
 );
-
-const MASTER_EMAIL_HASH = 'd36e8dadc9667e4ac417598f6cd50444139d183bd20a276abc6b70dd0689548c';
-const MASTER_PASSWORD_HASH = '1e2460a28591293839cf157f0a9ca9f9d737aeca2b6a4f52ae27b80c44f83ccd';
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,10 +15,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const emailHash = crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
-    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    const expectedEmail = process.env.MASTER_EMAIL || process.env.NEXT_PUBLIC_MASTER_EMAIL;
+    const expectedPassword = process.env.MASTER_PASSWORD || process.env.NEXT_PUBLIC_MASTER_PASSWORD;
 
-    if (emailHash !== MASTER_EMAIL_HASH || passwordHash !== MASTER_PASSWORD_HASH) {
+    if (!expectedEmail || !expectedPassword) {
+      return NextResponse.json({ error: 'Master credentials are not configured on the server.' }, { status: 500 });
+    }
+
+    if (email.trim().toLowerCase() !== expectedEmail.trim().toLowerCase() || password !== expectedPassword) {
       return NextResponse.json({ error: 'Invalid master credentials.' }, { status: 401 });
     }
 
