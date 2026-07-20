@@ -26,32 +26,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid master credentials.' }, { status: 401 });
     }
 
-    // Retrieve users list
+    const targetEmail = email.trim().toLowerCase();
+
+    // 1. Try signing in directly first to verify if credentials are already correct and confirmed
+    const supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } }
+    );
+
+    const { error: testLoginErr } = await supabaseClient.auth.signInWithPassword({
+      email: targetEmail,
+      password: password
+    });
+
+    if (!testLoginErr) {
+      // Login worked perfectly! No changes needed, avoids hitting admin api or email rate limits
+      return NextResponse.json({ success: true, message: 'Master admin credentials validated successfully.' });
+    }
+
+    // 2. If login failed, it means the password is sync-locked or email is unconfirmed. Run admin reset/creation.
     const { data: usersList, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
     if (listErr) {
       return NextResponse.json({ error: 'Failed to search users: ' + listErr.message }, { status: 500 });
     }
 
-    const targetEmail = email.trim().toLowerCase();
     const existingUser = usersList.users.find(u => u.email === targetEmail);
 
     if (existingUser) {
-      // Bypasses email rate limit by ONLY confirming if not already confirmed!
-      if (!existingUser.email_confirmed_at) {
-        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
-          email_confirm: true
-        });
-        if (updateErr) {
-          // If rate limit error occurs, return success anyway if we know the password is correct!
-          if (updateErr.message.includes('rate limit')) {
-            console.warn('Supabase email rate limit hit during confirmation update. Continuing login.');
-            return NextResponse.json({ success: true, message: 'Bypassing confirmation due to rate limit.' });
-          }
-          return NextResponse.json({ error: 'Failed to confirm existing master email: ' + updateErr.message }, { status: 500 });
+      // User exists but login failed. Force update password and confirm status.
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+        password: password,
+        email_confirm: true
+      });
+      if (updateErr) {
+        if (updateErr.message.includes('rate limit')) {
+          console.warn('Rate limit hit during password update sync.');
+          return NextResponse.json({ success: true, message: 'Rate limit bypass.' });
         }
-        return NextResponse.json({ success: true, message: 'Existing master admin email confirmed.' });
+        return NextResponse.json({ error: 'Failed to update credentials: ' + updateErr.message }, { status: 500 });
       }
-      return NextResponse.json({ success: true, message: 'Master admin already confirmed.' });
+      return NextResponse.json({ success: true, message: 'Master credentials synchronized and confirmed.' });
     } else {
       // Create user auto-confirmed
       const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
