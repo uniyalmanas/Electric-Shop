@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
     // Fetch worker profile and their shop status
     const { data: worker } = await supabase
       .from('workers')
-      .select('role, active, shop_id, shops(is_suspended)')
+      .select('role, active, shop_id, shops(is_suspended, subscription_status, trial_ends_at)')
       .eq('auth_id', user.id)
       .single();
 
@@ -62,11 +62,25 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if the shop itself is suspended (masters are immune to suspension check)
-    const isShopSuspended = worker.shops ? (worker.shops as any).is_suspended : false;
+    const shopInfo = worker.shops as any;
+    const isShopSuspended = shopInfo ? shopInfo.is_suspended : false;
     if (isShopSuspended && worker.role !== 'master') {
       const redirectResponse = NextResponse.redirect(new URL('/login?error=suspended', request.url));
       await supabase.auth.signOut();
       return redirectResponse;
+    }
+
+    // Check if the trial or subscription has expired (masters are immune)
+    const subscriptionStatus = shopInfo ? shopInfo.subscription_status : 'trial';
+    const trialEndsAt = shopInfo?.trial_ends_at ? new Date(shopInfo.trial_ends_at) : new Date();
+    const isExpired = subscriptionStatus === 'expired' || 
+      (subscriptionStatus === 'trial' && trialEndsAt < new Date());
+
+    if (isExpired && worker.role !== 'master') {
+      const isBillingPath = request.nextUrl.pathname.startsWith('/owner/billing');
+      if ((isOwnerPath && !isBillingPath) || isStaffPath) {
+        return NextResponse.redirect(new URL('/owner/billing', request.url));
+      }
     }
 
     const role = worker.role;
