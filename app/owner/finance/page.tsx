@@ -49,7 +49,7 @@ export default function FinanceHubPage() {
       // 2. Fetch Expenses
       const { data: expenses } = await supabase
         .from('expenses')
-        .select('id, amount, description, date')
+        .select('id, amount, category, notes, created_at')
         .eq('shop_id', shopId);
 
       const totalExpenses = (expenses || []).reduce((sum, e) => sum + Number(e.amount), 0);
@@ -86,7 +86,7 @@ export default function FinanceHubPage() {
         list.push({
           id: s.id,
           type: 'sale',
-          description: `Retail Invoice #${s.invoice_number}`,
+          description: `Retail Invoice #${(s as any).invoice_number || s.id.substring(0, 8).toUpperCase()}`,
           amount: Number(s.total_amount),
           date: s.created_at
         });
@@ -96,9 +96,9 @@ export default function FinanceHubPage() {
         list.push({
           id: e.id,
           type: 'expense',
-          description: e.description || 'Generic Expense',
+          description: e.notes || e.category || 'Generic Expense',
           amount: Number(e.amount),
-          date: e.date
+          date: e.created_at
         });
       });
 
