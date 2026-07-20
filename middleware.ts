@@ -46,10 +46,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   } else {
-    // Fetch worker profile to verify active status and role
+    // Fetch worker profile and their shop status
     const { data: worker } = await supabase
       .from('workers')
-      .select('role, active')
+      .select('role, active, shop_id, shops(is_suspended)')
       .eq('auth_id', user.id)
       .single();
 
@@ -57,6 +57,14 @@ export async function middleware(request: NextRequest) {
       // Inactive or deleted worker: terminate session and redirect to login
       const redirectResponse = NextResponse.redirect(new URL('/login?error=deactivated', request.url));
       // Delete session cookies manually or signOut
+      await supabase.auth.signOut();
+      return redirectResponse;
+    }
+
+    // Check if the shop itself is suspended (masters are immune to suspension check)
+    const isShopSuspended = worker.shops ? (worker.shops as any).is_suspended : false;
+    if (isShopSuspended && worker.role !== 'master') {
+      const redirectResponse = NextResponse.redirect(new URL('/login?error=suspended', request.url));
       await supabase.auth.signOut();
       return redirectResponse;
     }

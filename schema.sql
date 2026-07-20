@@ -8,6 +8,9 @@ create table shops (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   owner_auth_id uuid not null references auth.users(id) on delete cascade,
+  subscription_status text not null default 'trial',
+  trial_ends_at timestamptz not null default (now() + interval '7 days'),
+  is_suspended boolean not null default false,
   created_at timestamptz default now()
 );
 

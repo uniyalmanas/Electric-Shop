@@ -18,8 +18,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('error') === 'deactivated') {
+    const err = params.get('error');
+    if (err === 'deactivated') {
       setError('Your worker profile has been deactivated. Please contact your shop owner.');
+    } else if (err === 'suspended') {
+      setError('Your shop account has been suspended. Please contact technical support at support@electrostock.in.');
     }
   }, []);
 
