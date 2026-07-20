@@ -110,7 +110,7 @@ export default function MasterDashboard() {
   // Sign out master admin
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   // Stats summaries

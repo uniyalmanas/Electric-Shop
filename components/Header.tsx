@@ -83,7 +83,7 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   // Split shopName into first word and remaining words for logo styling
