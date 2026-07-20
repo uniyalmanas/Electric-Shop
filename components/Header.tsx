@@ -7,7 +7,7 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [shopName, setShopName] = useState<string>('ElectroStock');
   const [userProfile, setUserProfile] = useState<{ name: string; role: string } | null>(null);
-  const [lang, setLang] = useState<'en' | 'hinglish'>('en');
+  const [lang, setLang] = useState<'en' | 'hinglish' | 'hindi'>('en');
   const supabase = createClient();
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
       setShopName(cached);
     }
 
-    const cachedLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish';
+    const cachedLang = localStorage.getItem('electrostock_language') as 'en' | 'hinglish' | 'hindi';
     if (cachedLang) {
       setLang(cachedLang);
     }
@@ -68,7 +68,14 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
   };
 
   const toggleLanguage = () => {
-    const nextLang = lang === 'en' ? 'hinglish' : 'en';
+    let nextLang: 'en' | 'hinglish' | 'hindi' = 'en';
+    if (lang === 'en') {
+      nextLang = 'hinglish';
+    } else if (lang === 'hinglish') {
+      nextLang = 'hindi';
+    } else {
+      nextLang = 'en';
+    }
     setLang(nextLang);
     localStorage.setItem('electrostock_language', nextLang);
     window.dispatchEvent(new Event('languageChange'));
@@ -141,7 +148,7 @@ export default function Header({ title, backUrl }: { title: string; backUrl?: st
           title="Toggle Language"
         >
           <span>🌐</span>
-          <span>{lang === 'en' ? 'EN' : 'HINGLISH'}</span>
+          <span>{lang === 'en' ? 'EN' : lang === 'hinglish' ? 'HINGLISH' : 'हिंदी'}</span>
         </button>
 
         {/* Mode Toggle Button */}

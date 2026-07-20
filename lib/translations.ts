@@ -1,4 +1,4 @@
-export type Language = 'en' | 'hinglish';
+export type Language = 'en' | 'hinglish' | 'hindi';
 
 export const translations = {
   en: {
@@ -114,5 +114,62 @@ export const translations = {
     // Auth & Generic
     logout: "Log Out",
     loadingMetrics: "Data load ho raha hai..."
+  },
+  hindi: {
+    // Header & Dashboard titles
+    ownerDashboard: "मालिक डैशबोर्ड",
+    activeStaff: "सक्रिय कर्मचारी",
+    registerStaff: "नया कर्मचारी दर्ज करें",
+    registeredWorkers: "पंजीकृत कर्मचारी सूची",
+    recentStockMovements: "नवीनतम स्टॉक आवागमन लॉग (शीर्ष 25)",
+    time: "समय",
+    staff: "कर्मचारी",
+    product: "सामान",
+    qty: "मात्रा",
+    direction: "दिशा",
+    reason: "कारण",
+    loadingStaff: "कर्मचारी लॉग लोड हो रहे हैं...",
+    noStockMovements: "अभी तक कोई स्टॉक आवागमन दर्ज नहीं किया गया है।",
+    cancel: "रद्द करें",
+    registerBtn: "कर्मचारी पंजीकृत करें",
+    staffName: "कर्मचारी का नाम",
+    phoneLogin: "फ़ोन नंबर (लॉगिन के लिए)",
+    emailOptional: "ईमेल पता (वैकल्पिक)",
+    loginPassword: "लॉगिन पासवर्ड",
+    shopRole: "दुकान में भूमिका",
+    staffRoleOpt: "कर्मचारी सदस्य (केवल बिलिंग काउंटर)",
+    ownerRoleOpt: "सह-मालिक (पूर्ण अधिकार)",
+    activeStatus: "सक्रिय",
+    inactiveStatus: "निष्क्रिय",
+    deactivate: "बंद करें",
+    activate: "चालू करें",
+    
+    // Main Dashboard Summary
+    todaySales: "आज की बिक्री",
+    cashReceived: "नकद प्राप्त हुआ (गल्ला)",
+    lowStock: "कम स्टॉक सामान",
+    duesReceivable: "ग्राहक बकाया (लेना)",
+    duesPayable: "सप्लायर बकाया (देना)",
+    quickLinks: "त्वरित एक्शन पैनल",
+    
+    // Nav Items
+    inventoryLabel: "सामान सूची",
+    inventoryDesc: "स्टॉक स्तर की जांच करें, कीमतें बदलें, और रीऑर्डर अलर्ट देखें।",
+    contractorLabel: "ठेकेदार/ग्राहक खाता",
+    contractorDesc: "उधार शेष राशि का हिसाब रखें, नकद भुगतान स्वीकार करें, और खाता साफ़ करें।",
+    expensesLabel: "दैनिक खर्च",
+    expensesDesc: "दुकान का किराया, बिजली बिल, चाय-पानी और विविध खर्च दर्ज करें।",
+    reportsLabel: "जीएसटी टैक्स रिपोर्ट",
+    reportsDesc: "अपने सीए के लिए जीएसटीआर-1 और जीएसटीआर-3बी सारांश डाउनलोड करें।",
+    suppliersLabel: "सप्लायर बहीखाता",
+    suppliersDesc: "वितरक चालान, लंबित भुगतान और खरीद इतिहास ट्रैक करें।",
+    reconciliationLabel: "स्टॉक मिलान लॉग",
+    reconciliationDesc: "काउंटर स्टॉक और कंप्यूटर स्टॉक का मिलान करें, विसंगतियों को दूर करें।",
+    settingsLabel: "दुकान की सेटिंग",
+    settingsDesc: "दुकान का नाम, टैक्स दरें और बिलिंग कॉन्फ़िगरेशन अपडेट करें।",
+    
+    // Auth & Generic
+    logout: "लॉग आउट",
+    loadingMetrics: "डेटा लोड हो रहा है..."
   }
 };
