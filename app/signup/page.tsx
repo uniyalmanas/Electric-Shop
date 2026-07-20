@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 
 export default function SignupPage() {
@@ -13,8 +13,18 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'form' | 'success'>('form');
+  const [mode, setMode] = useState<'trial' | 'pay'>('trial');
 
   const supabase = createClient();
+
+  // Safe query parameters retrieval at runtime to prevent SSR build errors
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const m = params.get('mode');
+    if (m === 'pay') {
+      setMode('pay');
+    }
+  }, []);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +62,7 @@ export default function SignupPage() {
           phone,
           password,
           seedCatalog,
+          mode,
         }),
       });
 
@@ -59,6 +70,21 @@ export default function SignupPage() {
       if (!res.ok) {
         setError(result.error || 'Registration failed.');
         setLoading(false);
+        return;
+      }
+
+      // Auto sign in user to provide zero-friction entry
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: password,
+      });
+
+      if (!signInErr) {
+        if (mode === 'pay') {
+          window.location.href = '/owner/billing';
+        } else {
+          window.location.href = '/owner';
+        }
         return;
       }
 
@@ -82,12 +108,25 @@ export default function SignupPage() {
           <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#C1793D]" />
 
           <div className="text-center space-y-1">
-            <span className="font-mono text-[9px] tracking-widest text-[#93A0A3] uppercase">Launch Your Cloud SaaS</span>
+            <span className="font-mono text-[9px] tracking-widest text-[#93A0A3] uppercase">
+              {mode === 'pay' ? 'PAY & OWN PORTAL' : 'LAUNCH FREE TRIAL'}
+            </span>
             <h1 className="text-2xl font-bold tracking-tight">
               Create <span className="text-[#E0954F]">ElectroStock</span> Shop
             </h1>
-            <p className="text-xs text-[#93A0A3]">Sign up to get your isolated retail inventory & billing counter database.</p>
+            <p className="text-xs text-[#93A0A3]">
+              {mode === 'pay' 
+                ? 'Register your shop and unlock unlimited platform access (₹1).' 
+                : 'Sign up to get a 7-day free trial on your isolated inventory database.'}
+            </p>
           </div>
+
+          {error && (
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-455 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <span>⚠️</span>
+              {error}
+            </div>
+          )}
 
           <div className="space-y-4">
             <div>
@@ -95,22 +134,22 @@ export default function SignupPage() {
               <input
                 type="text"
                 required
+                placeholder="e.g. Apex Electricals"
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
                 className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
-                placeholder="e.g. Senwal Electricals"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Owner Name</label>
+              <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Owner Full Name</label>
               <input
                 type="text"
                 required
+                placeholder="e.g. Ramesh Kumar"
                 value={ownerName}
                 onChange={(e) => setOwnerName(e.target.value)}
                 className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
-                placeholder="e.g. Manas Uniyal"
               />
             </div>
 
@@ -119,67 +158,62 @@ export default function SignupPage() {
               <input
                 type="email"
                 required
+                placeholder="owner@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
-                placeholder="e.g. manas@example.com"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Phone Number (Login)</label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
-                  placeholder="10-digit mobile"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] focus:outline-none focus:border-[#C1793D] transition-colors"
-                  placeholder="Min 6 chars"
-                />
-              </div>
+            <div>
+              <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Mobile Number</label>
+              <input
+                type="tel"
+                required
+                maxLength={10}
+                placeholder="10-digit number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
+              />
             </div>
 
-            <div className="pt-2">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={seedCatalog}
-                  onChange={(e) => setSeedCatalog(e.target.checked)}
-                  className="w-5 h-5 rounded bg-[#14181B] border-[#38403F] text-[#C1793D] focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                />
-                <div className="text-left">
-                  <span className="text-xs font-bold text-[#EDEAE3] block">Pre-seed Catalog</span>
-                  <span className="text-[10px] text-[#93A0A3] block">Populate with 87 standard Indian electrical brands/units.</span>
-                </div>
+            <div>
+              <label className="block text-[10px] font-bold text-[#93A0A3] uppercase tracking-wider mb-1.5">Password</label>
+              <input
+                type="password"
+                required
+                placeholder="Min 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#14181B] border border-[#38403F] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] placeholder-slate-600 focus:outline-none focus:border-[#C1793D] transition-colors"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <input
+                type="checkbox"
+                id="seedCatalog"
+                checked={seedCatalog}
+                onChange={(e) => setSeedCatalog(e.target.checked)}
+                className="rounded border-[#38403F] text-[#C1793D] focus:ring-0 cursor-pointer bg-[#14181B] w-4 h-4"
+              />
+              <label htmlFor="seedCatalog" className="text-xs text-[#93A0A3] select-none cursor-pointer">
+                Seed default electrical catalog items (MCBs, wires, brands)
               </label>
             </div>
           </div>
 
-          {error && (
-            <div className="bg-rose-500/10 border border-rose-500/25 p-3.5 rounded-xl text-rose-450 text-xs font-medium text-center">
-              ⚠️ {error}
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#C1793D] hover:bg-[#E0954F] border border-[#C1793D] text-[#1a120a] font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 text-sm"
+            className="w-full bg-[#C1793D] hover:bg-[#E0954F] border border-[#C1793D] text-[#1a120a] font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 text-sm cursor-pointer font-mono tracking-wide uppercase"
           >
-            {loading ? 'Registering & Launching Shop...' : 'Register & Launch Shop'}
+            {loading 
+              ? 'PROVISIONING DATABASE...' 
+              : mode === 'pay' 
+                ? 'REGISTER & PAY NOW' 
+                : 'REGISTER & START TRIAL'}
           </button>
 
           <p className="text-center text-xs text-[#93A0A3]">

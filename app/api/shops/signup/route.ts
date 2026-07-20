@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { shopName, ownerName, email, phone, password, seedCatalog } = body;
+    const { shopName, ownerName, email, phone, password, seedCatalog, mode } = body;
 
     if (!shopName || !ownerName || !email || !phone || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -33,12 +33,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication failed: ' + (authErr?.message || 'unknown error') }, { status: 500 });
     }
 
+    // Determine default subscription states based on signup mode
+    const subscription_status = mode === 'pay' ? 'expired' : 'trial';
+    const trial_ends_at = mode === 'pay' 
+      ? new Date(0).toISOString() 
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
     // 2. Create the shop entry
     const { data: shop, error: shopErr } = await supabaseAdmin
       .from('shops')
       .insert({
         name: shopName.trim(),
         owner_auth_id: authUser.user.id,
+        subscription_status,
+        trial_ends_at
       })
       .select()
       .single();

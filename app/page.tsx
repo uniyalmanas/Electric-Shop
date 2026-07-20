@@ -190,7 +190,7 @@ export default function Home() {
             {t.login}
           </a>
           <a
-            href="/signup"
+            href="/signup?mode=trial"
             className="bg-[#C1793D] hover:bg-[#E0954F] border border-[#C1793D] text-[#1a120a] font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 text-xs font-mono tracking-wider"
           >
             {t.register}
@@ -300,12 +300,20 @@ export default function Home() {
                 ))}
               </ul>
 
-              <a
-                href="/signup"
-                className="block text-center w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-extrabold py-3.5 rounded-xl transition-all shadow-md text-xs font-mono tracking-wider mt-4"
-              >
-                {t.register.toUpperCase()}
-              </a>
+              <div className="flex flex-col gap-3 mt-6">
+                <a
+                  href="/signup?mode=trial"
+                  className="block text-center w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-extrabold py-3.5 rounded-xl transition-all shadow-md text-xs font-mono tracking-wider"
+                >
+                  🚀 START 7-DAY FREE TRIAL
+                </a>
+                <a
+                  href="/signup?mode=pay"
+                  className="block text-center w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-extrabold py-3.5 rounded-xl transition-all shadow-md text-xs font-mono tracking-wider"
+                >
+                  💳 PAY & OWN PORTAL (₹1)
+                </a>
+              </div>
             </div>
           </div>
         </div>
