@@ -20,23 +20,20 @@ const landingTranslations = {
     pricingTitle: "Simple, Transparent Subscriptions",
     pricingDesc: "Choose the perfect plan to streamline your electrical counter billing.",
     plans: {
-      basic: {
-        name: "Basic Plan",
-        price: "₹1",
-        desc: "Ideal for small retail counters",
-        features: ["1 Billing Counter", "Standard Inventory List", "WhatsApp & Thermal Bills", "Basic Ledger Tracking"]
-      },
-      pro: {
-        name: "Pro Plan",
-        price: "₹1",
-        desc: "Best for growing electrical shops",
-        features: ["3 Billing Counters", "Voice Billing (Hinglish)", "Gemini OCR Invoice Ingestion", "Stock Reconciliation Audits"]
-      },
       premium: {
-        name: "Premium Plan",
+        name: "Premium All-in-One Plan",
         price: "₹1",
-        desc: "For multi-counter wholesale distributors",
-        features: ["Unlimited Counters", "Multi-Location Godown Logs", "CA-Ready GST Tax Spreadsheets", "Priority 24/7 Phone Support"]
+        desc: "Complete, unrestricted access to all features.",
+        features: [
+          "Unlimited POS Billing Counters",
+          "Natural Hinglish Voice Commands",
+          "Gemini AI OCR Bill Ingestion",
+          "Warehouse Godown Stock Transfers",
+          "CA-Ready GSTR-1 & 3B Excel Sheets",
+          "Contractor Udhaar Ledger Logs",
+          "WhatsApp Invoice Pushes",
+          "Priority 24/7 Phone Support"
+        ]
       }
     },
     aboutTitle: "About ElectroStock",
@@ -62,23 +59,20 @@ const landingTranslations = {
     pricingTitle: "Saste aur Simple Plans",
     pricingDesc: "Apni dukaan ke counter space ke hisab se sahi plan select karein.",
     plans: {
-      basic: {
-        name: "Basic Plan",
-        price: "₹1",
-        desc: "Choti dukaan ke counters ke liye",
-        features: ["1 Billing Counter", "Normal Samaan ki List", "WhatsApp aur Thermal Bills", "Basic Ledger Tracking"]
-      },
-      pro: {
-        name: "Pro Plan",
-        price: "₹1",
-        desc: "Medium size shop ke liye best",
-        features: ["3 Billing Counters", "Aawaz se Bill (Hinglish)", "Gemini OCR Bill Entry", "Stock Reconciliation Audits"]
-      },
       premium: {
-        name: "Premium Plan",
+        name: "Premium All-in-One Plan",
         price: "₹1",
-        desc: "Bade wholesale traders ke liye",
-        features: ["Unlimited Counters", "Godown Transfer Logs", "CA-Ready GST Tax Spreadsheets", "Special 24/7 Phone Support"]
+        desc: "Saare features ka access, koi limits nahi.",
+        features: [
+          "Unlimited Counter Space Billing",
+          "Aawaz Se Bill Banayein (Hinglish)",
+          "Gemini OCR Invoice Auto Ingestion",
+          "Warehouse Godown Transfer Logs",
+          "CA-Ready GSTR-1 & 3B Excel Sheets",
+          "Contractor Udhaar Khata Tracker",
+          "WhatsApp Receipt Push",
+          "24/7 Customer Phone Support"
+        ]
       }
     },
     aboutTitle: "ElectroStock kya hai?",
@@ -104,23 +98,20 @@ const landingTranslations = {
     pricingTitle: "सरल और पारदर्शी प्लान",
     pricingDesc: "अपने बिलिंग काउंटर की संख्या और आवश्यकता के अनुसार सही प्लान चुनें।",
     plans: {
-      basic: {
-        name: "बेसिक प्लान",
-        price: "₹1",
-        desc: "छोटे रिटेल काउंटरों के लिए",
-        features: ["1 बिलिंग काउंटर", "मानक सामान सूची", "व्हाट्सएप और थर्मल बिल", "बेसिक बहीखाता ट्रैकिंग"]
-      },
-      pro: {
-        name: "प्रो प्लान",
-        price: "₹1",
-        desc: "बढ़ती इलेक्ट्रिकल दुकानों के लिए उत्तम",
-        features: ["3 बिलिंग काउंटर", "वॉयस बिलिंग (हिंग्लिश)", "जेमिनी ओसीआर बिल अपलोड", "स्टॉक ऑडिट लॉग्स"]
-      },
       premium: {
-        name: "प्रीमियम प्लान",
+        name: "प्रीमियम ऑल-इन-वन प्लान",
         price: "₹1",
-        desc: "थोक वितरकों और गोदामों के लिए",
-        features: ["असीमित बिलिंग काउंटर", "मल्टी-लोकेशन गोदाम लॉग्स", "सीए-रेडी जीएसटी टैक्स एक्सेल शीट", "प्राथमिकता 24/7 फोन सहायता"]
+        desc: "सभी फीचर्स का असीमित एक्सेस बिना किसी सीमा के।",
+        features: [
+          "असीमित बिलिंग काउंटर",
+          "वॉयस बिलिंग (हिंग्लिश)",
+          "जेमिनी ओसीआर बिल अपलोड",
+          "गोदाम स्टॉक ट्रांसफर",
+          "सीए-रेडी जीएसटी एक्सेल शीट",
+          "ठेकेदार बहीखाता ट्रैकिंग",
+          "व्हाट्सएप चालान रसीद",
+          "24/7 प्राथमिकता फोन सहायता"
+        ]
       }
     },
     aboutTitle: "इलेक्ट्रोस्टॉक के बारे में",
@@ -284,53 +275,25 @@ export default function Home() {
             <p className="text-[#93A0A3] text-xs md:text-sm font-semibold max-w-lg mx-auto">{t.pricingDesc}</p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Basic Plan */}
-            <div className="bg-[#1E2427] border border-[#38403F] rounded-3xl p-8 space-y-6 shadow-xl relative hover:border-[#38403F] transition-all">
-              <div className="space-y-2">
-                <h3 className="text-lg font-bold text-[#EDEAE3]">{t.plans.basic.name}</h3>
-                <p className="text-[#93A0A3] text-xs font-semibold">{t.plans.basic.desc}</p>
-              </div>
-
-              <div className="flex items-baseline gap-1 py-4 border-b border-[#38403F]/50">
-                <span className="text-4xl font-black text-[#EDEAE3]">{t.plans.basic.price}</span>
-                <span className="text-xs text-[#93A0A3] font-bold font-mono">/ MONTH</span>
-              </div>
-
-              <ul className="space-y-3.5 text-xs text-[#93A0A3] font-medium">
-                {t.plans.basic.features.map((f, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="text-[#E0954F]">✔</span> {f}
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href="/signup"
-                className="block text-center w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-extrabold py-3 rounded-xl transition-all shadow-md text-xs font-mono tracking-wider mt-4"
-              >
-                GET STARTED
-              </a>
-            </div>
-
-            {/* Pro Plan (Best Value Accent) */}
+          <div className="max-w-md mx-auto">
+            {/* Premium All-in-One Plan */}
             <div className="bg-[#1E2427] border-2 border-[#C1793D] rounded-3xl p-8 space-y-6 shadow-2xl relative hover:-translate-y-1 transition-all">
               <div className="absolute top-[-14px] left-1/2 -translate-x-1/2 bg-[#C1793D] text-[#1a120a] text-[9px] font-black uppercase tracking-widest px-4 py-1 rounded-full font-mono">
-                RECOMMENDED
+                ALL-IN-ONE PREMIUM
               </div>
 
-              <div className="space-y-2">
-                <h3 className="text-lg font-bold text-[#E0954F]">{t.plans.pro.name}</h3>
-                <p className="text-[#93A0A3] text-xs font-semibold">{t.plans.pro.desc}</p>
+              <div className="space-y-2 text-center">
+                <h3 className="text-xl font-bold text-[#E0954F]">{t.plans.premium.name}</h3>
+                <p className="text-[#93A0A3] text-xs font-semibold">{t.plans.premium.desc}</p>
               </div>
 
-              <div className="flex items-baseline gap-1 py-4 border-b border-[#38403F]/50">
-                <span className="text-4xl font-black text-[#EDEAE3]">{t.plans.pro.price}</span>
+              <div className="flex justify-center items-baseline gap-1 py-4 border-b border-[#38403F]/50">
+                <span className="text-4xl font-black text-[#EDEAE3]">{t.plans.premium.price}</span>
                 <span className="text-xs text-[#93A0A3] font-bold font-mono">/ MONTH</span>
               </div>
 
               <ul className="space-y-3.5 text-xs text-[#EDEAE3] font-medium">
-                {t.plans.pro.features.map((f, i) => (
+                {t.plans.premium.features.map((f, i) => (
                   <li key={i} className="flex items-center gap-2">
                     <span className="text-[#C1793D]">✔</span> {f}
                   </li>
@@ -339,37 +302,9 @@ export default function Home() {
 
               <a
                 href="/signup"
-                className="block text-center w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-extrabold py-3 rounded-xl transition-all shadow-md text-xs font-mono tracking-wider mt-4"
+                className="block text-center w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-extrabold py-3.5 rounded-xl transition-all shadow-md text-xs font-mono tracking-wider mt-4"
               >
-                SUBSCRIBE NOW
-              </a>
-            </div>
-
-            {/* Premium Plan */}
-            <div className="bg-[#1E2427] border border-[#38403F] rounded-3xl p-8 space-y-6 shadow-xl relative hover:border-[#38403F] transition-all">
-              <div className="space-y-2">
-                <h3 className="text-lg font-bold text-[#EDEAE3]">{t.plans.premium.name}</h3>
-                <p className="text-[#93A0A3] text-xs font-semibold">{t.plans.premium.desc}</p>
-              </div>
-
-              <div className="flex items-baseline gap-1 py-4 border-b border-[#38403F]/50">
-                <span className="text-4xl font-black text-[#EDEAE3]">{t.plans.premium.price}</span>
-                <span className="text-xs text-[#93A0A3] font-bold font-mono">/ MONTH</span>
-              </div>
-
-              <ul className="space-y-3.5 text-xs text-[#93A0A3] font-medium">
-                {t.plans.premium.features.map((f, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="text-[#E0954F]">✔</span> {f}
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href="/signup"
-                className="block text-center w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-extrabold py-3 rounded-xl transition-all shadow-md text-xs font-mono tracking-wider mt-4"
-              >
-                UPGRADE PLATFORM
+                {t.register.toUpperCase()}
               </a>
             </div>
           </div>

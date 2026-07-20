@@ -219,98 +219,42 @@ export default function BillingPage() {
         )}
 
         {/* --- SUBSCRIPTION PLANS GRID --- */}
-        <div className="space-y-6">
+        <div className="max-w-md mx-auto space-y-6">
           <div className="text-center space-y-2">
-            <h3 className="text-2xl font-extrabold">Select Your Subscription Tier</h3>
-            <p className="text-[#93A0A3] text-xs font-semibold">Flexible, transparent monthly plans designed for Indian electrical shops.</p>
+            <h3 className="text-2xl font-extrabold">All-in-One Premium Subscription</h3>
+            <p className="text-[#93A0A3] text-xs font-semibold">Get complete, unrestricted access to all ElectroStock features.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            
-            {/* Basic Plan */}
-            <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 flex flex-col justify-between shadow-xl relative hover:border-[#C1793D]/30 transition-all">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-bold text-[#EDEAE3] text-base">Basic Plan</h4>
-                  <p className="text-[10px] text-[#93A0A3] font-medium mt-1">Perfect for small neighborhood counters.</p>
-                </div>
-                <div className="flex items-baseline gap-0.5 border-b border-[#38403F]/40 pb-4">
-                  <span className="text-3xl font-black text-[#EDEAE3]">₹1</span>
-                  <span className="text-[10px] text-[#93A0A3] font-bold font-mono">/ MONTH</span>
-                </div>
-                <ul className="space-y-3 text-xs text-[#93A0A3] font-medium">
-                  <li className="flex items-center gap-2">✔ 1 Billing Counter POS</li>
-                  <li className="flex items-center gap-2">✔ Unlimited Stock Ingestion</li>
-                  <li className="flex items-center gap-2">✔ WhatsApp & Thermal Bills</li>
-                  <li className="flex items-center gap-2">✔ Contractor Udhaar Ledgers</li>
-                </ul>
-              </div>
-              <button
-                onClick={() => handleCheckout('basic', 1)}
-                disabled={submitting}
-                className="mt-6 w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-bold py-2.5 rounded-xl text-xs font-mono tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                SELECT BASIC
-              </button>
+          <div className="bg-[#1E2427] border-2 border-[#C1793D] rounded-3xl p-8 flex flex-col justify-between shadow-2xl relative hover:scale-102 transition-all">
+            <div className="absolute top-[-11px] left-1/2 -translate-x-1/2 bg-[#C1793D] text-[#1a120a] text-[8px] font-black uppercase tracking-wider px-4 py-0.5 rounded-full font-mono">
+              PREMIUM ALL-IN-ONE
             </div>
-
-            {/* Pro Plan */}
-            <div className="bg-[#1E2427] border-2 border-[#C1793D] rounded-3xl p-6 flex flex-col justify-between shadow-2xl relative hover:scale-102 transition-all">
-              <div className="absolute top-[-11px] left-1/2 -translate-x-1/2 bg-[#C1793D] text-[#1a120a] text-[8px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full font-mono">
-                RECOMMENDED
+            <div className="space-y-6">
+              <div>
+                <h4 className="font-bold text-[#E0954F] text-lg text-center">Complete Platform Access</h4>
+                <p className="text-[10px] text-[#93A0A3] font-medium mt-1 text-center">Unlocks all voice estimation, AI ingestion, and tax export modules.</p>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-bold text-[#E0954F] text-base">Pro Plan</h4>
-                  <p className="text-[10px] text-[#93A0A3] font-medium mt-1">Best for busy retail outlets.</p>
-                </div>
-                <div className="flex items-baseline gap-0.5 border-b border-[#38403F]/40 pb-4">
-                  <span className="text-3xl font-black text-[#EDEAE3]">₹1</span>
-                  <span className="text-[10px] text-[#93A0A3] font-bold font-mono">/ MONTH</span>
-                </div>
-                <ul className="space-y-3 text-xs text-[#EDEAE3] font-medium">
-                  <li className="flex items-center gap-2">✔ 3 Billing Counter POS</li>
-                  <li className="flex items-center gap-2">✔ Voice-billing in Hinglish</li>
-                  <li className="flex items-center gap-2">✔ Gemini OCR Distributor Bills</li>
-                  <li className="flex items-center gap-2">✔ Loss Audit Reconciliation</li>
-                </ul>
+              <div className="flex justify-center items-baseline gap-0.5 border-b border-[#38403F]/40 pb-5">
+                <span className="text-4xl font-black text-[#EDEAE3]">₹1</span>
+                <span className="text-[10px] text-[#93A0A3] font-bold font-mono">/ MONTH</span>
               </div>
-              <button
-                onClick={() => handleCheckout('pro', 1)}
-                disabled={submitting}
-                className="mt-6 w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-bold py-2.5 rounded-xl text-xs font-mono tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                SUBSCRIBE PRO
-              </button>
+              <ul className="space-y-3.5 text-xs text-[#EDEAE3] font-medium pt-2">
+                <li className="flex items-center gap-2">✔ Unlimited Billing Counter POS</li>
+                <li className="flex items-center gap-2">✔ Natural Hinglish Voice Commands</li>
+                <li className="flex items-center gap-2">✔ Gemini AI OCR Invoice Ingestion</li>
+                <li className="flex items-center gap-2">✔ Warehouse Godown Transfer Logs</li>
+                <li className="flex items-center gap-2">✔ CA-Ready GSTR-1 & GSTR-3B Excel Reports</li>
+                <li className="flex items-center gap-2">✔ Contractor Udhaar Ledgers & WhatsApp Receipts</li>
+                <li className="flex items-center gap-2">✔ Priority 24/7 Technical Support</li>
+              </ul>
             </div>
-
-            {/* Premium Plan */}
-            <div className="bg-[#1E2427] border border-[#38403F]/60 rounded-3xl p-6 flex flex-col justify-between shadow-xl relative hover:border-[#C1793D]/30 transition-all">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-bold text-[#EDEAE3] text-base">Premium Plan</h4>
-                  <p className="text-[10px] text-[#93A0A3] font-medium mt-1">Designed for wholesale distributors.</p>
-                </div>
-                <div className="flex items-baseline gap-0.5 border-b border-[#38403F]/40 pb-4">
-                  <span className="text-3xl font-black text-[#EDEAE3]">₹1</span>
-                  <span className="text-[10px] text-[#93A0A3] font-bold font-mono">/ MONTH</span>
-                </div>
-                <ul className="space-y-3 text-xs text-[#93A0A3] font-medium">
-                  <li className="flex items-center gap-2">✔ Unlimited Billing POS</li>
-                  <li className="flex items-center gap-2">✔ Multi-Location Godown transfers</li>
-                  <li className="flex items-center gap-2">✔ CA-ready GST Exports</li>
-                  <li className="flex items-center gap-2">✔ Priority 24/7 Phone Support</li>
-                </ul>
-              </div>
-              <button
-                onClick={() => handleCheckout('premium', 1)}
-                disabled={submitting}
-                className="mt-6 w-full bg-[#2A3135] hover:bg-[#38403F] border border-[#38403F] text-[#EDEAE3] font-bold py-2.5 rounded-xl text-xs font-mono tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                SELECT PREMIUM
-              </button>
-            </div>
-
+            <button
+              onClick={() => handleCheckout('premium', 1)}
+              disabled={submitting}
+              className="mt-8 w-full bg-[#C1793D] hover:bg-[#E0954F] text-[#1a120a] font-extrabold py-3.5 rounded-xl text-xs font-mono tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-md"
+            >
+              ACTIVATE PREMIUM SUBSCRIPTION (₹1)
+            </button>
           </div>
         </div>
 
