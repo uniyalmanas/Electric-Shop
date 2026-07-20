@@ -68,11 +68,14 @@ export default function LoginPage() {
       password,
     });
 
+    const masterEmail = process.env.NEXT_PUBLIC_MASTER_EMAIL || '';
+    const masterPassword = process.env.NEXT_PUBLIC_MASTER_PASSWORD || '';
+
     // Auto-register / sign-up master admin if they don't exist in Supabase Auth yet
-    if (authErr && emailToAuth === 'uniyalmanasjob1@gmail.com' && password === 'Manas@12RYZEN') {
+    if (authErr && masterEmail && emailToAuth === masterEmail && password === masterPassword) {
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-        email: 'uniyalmanasjob1@gmail.com',
-        password: 'Manas@12RYZEN',
+        email: masterEmail,
+        password: masterPassword,
         options: {
           data: {
             role: 'master',
@@ -82,8 +85,8 @@ export default function LoginPage() {
       if (!signUpErr && signUpData?.user) {
         // Try logging in again after auto-signup
         const retry = await supabase.auth.signInWithPassword({
-          email: 'uniyalmanasjob1@gmail.com',
-          password: 'Manas@12RYZEN',
+          email: masterEmail,
+          password: masterPassword,
         });
         authData = retry.data;
         authErr = retry.error;
@@ -99,7 +102,7 @@ export default function LoginPage() {
     }
 
     // Auto-provision master worker record
-    if (authData?.user && authData.user.email === 'uniyalmanasjob1@gmail.com') {
+    if (authData?.user && masterEmail && authData.user.email === masterEmail) {
       const { data: existingWorker } = await supabase
         .from('workers')
         .select('id')
@@ -125,7 +128,7 @@ export default function LoginPage() {
           auth_id: authData.user.id,
           name: 'Master Admin',
           phone: '9999999999',
-          email: 'uniyalmanasjob1@gmail.com',
+          email: masterEmail,
           role: 'master',
           active: true,
           shop_id: shopId
@@ -139,7 +142,7 @@ export default function LoginPage() {
     }
     
     // Redirect to root or master page
-    if (emailToAuth === 'uniyalmanasjob1@gmail.com') {
+    if (masterEmail && emailToAuth === masterEmail) {
       window.location.href = '/master';
     } else {
       window.location.href = '/'; 
