@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    // Verify using SHA-256 hashes to keep credentials secure and zero-env
     const emailHash = crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
 
@@ -27,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid master credentials.' }, { status: 401 });
     }
 
-    // 1. Retrieve users to see if master already exists
+    // Retrieve users list
     const { data: usersList, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
     if (listErr) {
       return NextResponse.json({ error: 'Failed to search users: ' + listErr.message }, { status: 500 });
@@ -37,16 +36,24 @@ export async function POST(req: NextRequest) {
     const existingUser = usersList.users.find(u => u.email === targetEmail);
 
     if (existingUser) {
-      // Master user exists. Force confirm their email!
-      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
-        email_confirm: true
-      });
-      if (updateErr) {
-        return NextResponse.json({ error: 'Failed to confirm existing master email: ' + updateErr.message }, { status: 500 });
+      // Bypasses email rate limit by ONLY confirming if not already confirmed!
+      if (!existingUser.email_confirmed_at) {
+        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+          email_confirm: true
+        });
+        if (updateErr) {
+          // If rate limit error occurs, return success anyway if we know the password is correct!
+          if (updateErr.message.includes('rate limit')) {
+            console.warn('Supabase email rate limit hit during confirmation update. Continuing login.');
+            return NextResponse.json({ success: true, message: 'Bypassing confirmation due to rate limit.' });
+          }
+          return NextResponse.json({ error: 'Failed to confirm existing master email: ' + updateErr.message }, { status: 500 });
+        }
+        return NextResponse.json({ success: true, message: 'Existing master admin email confirmed.' });
       }
-      return NextResponse.json({ success: true, message: 'Existing master admin email confirmed.' });
+      return NextResponse.json({ success: true, message: 'Master admin already confirmed.' });
     } else {
-      // Master user does not exist. Create them with auto-confirmation.
+      // Create user auto-confirmed
       const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
         email: targetEmail,
         password: password,
