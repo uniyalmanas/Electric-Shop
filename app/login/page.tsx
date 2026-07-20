@@ -63,37 +63,26 @@ export default function LoginPage() {
       }
     }
 
+    const masterEmail = process.env.NEXT_PUBLIC_MASTER_EMAIL || '';
+    const masterPassword = process.env.NEXT_PUBLIC_MASTER_PASSWORD || '';
+
+    // If master admin attempt, trigger server-side auto-registration/confirmation first
+    if (masterEmail && emailToAuth === masterEmail && password === masterPassword) {
+      try {
+        await fetch('/api/auth/master-init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: masterEmail, password: masterPassword }),
+        });
+      } catch (err) {
+        console.error('Master auto-init failed, continuing login flow:', err);
+      }
+    }
+
     let { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
       email: emailToAuth,
       password,
     });
-
-    const masterEmail = process.env.NEXT_PUBLIC_MASTER_EMAIL || '';
-    const masterPassword = process.env.NEXT_PUBLIC_MASTER_PASSWORD || '';
-
-    // Auto-register / sign-up master admin if they don't exist in Supabase Auth yet
-    if (authErr && masterEmail && emailToAuth === masterEmail && password === masterPassword) {
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-        email: masterEmail,
-        password: masterPassword,
-        options: {
-          data: {
-            role: 'master',
-          }
-        }
-      });
-      if (!signUpErr && signUpData?.user) {
-        // Try logging in again after auto-signup
-        const retry = await supabase.auth.signInWithPassword({
-          email: masterEmail,
-          password: masterPassword,
-        });
-        authData = retry.data;
-        authErr = retry.error;
-      } else {
-        authErr = signUpErr || authErr;
-      }
-    }
 
     if (authErr) {
       setError(authErr.message || 'Wrong credentials. Please try again.');
