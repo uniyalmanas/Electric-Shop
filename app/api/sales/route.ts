@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
 
   // Rollback state tracking
   const stockRollbacks: { product_id: string; location_id: string; original_stock: number }[] = [];
+  const insertedMovementIds: string[] = [];
 
   try {
     // 7. Loop and process items
@@ -210,7 +211,7 @@ export async function POST(req: NextRequest) {
           }
 
           // Log stock movement for parent box (transfer out)
-          await supabase.from('stock_movements').insert({
+          const { data: moveOutData } = await supabase.from('stock_movements').insert({
             shop_id: shopId,
             product_id: prod.parent_product_id,
             worker_id: activeWorkerId,
@@ -219,14 +220,15 @@ export async function POST(req: NextRequest) {
             reason: 'transfer',
             location_id: defaultLocId,
             entry_method: 'manual',
-          });
+          }).select('id').single();
+          if (moveOutData) insertedMovementIds.push(moveOutData.id);
 
           // Add box_quantity (pieces) to current stock
           currentStockVal += Number(prod.box_quantity);
           console.log(`Auto-unboxed 1 Box into ${prod.box_quantity} pieces for product ${prod.name}`);
 
           // Log stock movement for piece product (transfer in)
-          await supabase.from('stock_movements').insert({
+          const { data: moveInData } = await supabase.from('stock_movements').insert({
             shop_id: shopId,
             product_id,
             worker_id: activeWorkerId,
@@ -235,7 +237,8 @@ export async function POST(req: NextRequest) {
             reason: 'transfer',
             location_id: defaultLocId,
             entry_method: 'manual',
-          });
+          }).select('id').single();
+          if (moveInData) insertedMovementIds.push(moveInData.id);
         }
       }
 
@@ -263,7 +266,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Insert stock_movements audit trail
-      await supabase.from('stock_movements').insert({
+      const { data: saleMoveData } = await supabase.from('stock_movements').insert({
         shop_id: shopId,
         product_id,
         worker_id: activeWorkerId,
@@ -274,7 +277,8 @@ export async function POST(req: NextRequest) {
         reference_id: sale.id,
         location_id: defaultLocId,
         entry_method: 'manual',
-      });
+      }).select('id').single();
+      if (saleMoveData) insertedMovementIds.push(saleMoveData.id);
     }
 
     // 8. Log into customer ledger if credit purchase / partial payment balance
@@ -310,6 +314,14 @@ export async function POST(req: NextRequest) {
           location_id: rb.location_id,
           current_stock: rb.original_stock
         }, { onConflict: 'product_id, location_id' });
+    }
+
+    // Delete any created stock movements to prevent orphaned entries
+    if (insertedMovementIds.length > 0) {
+      await supabase
+        .from('stock_movements')
+        .delete()
+        .in('id', insertedMovementIds);
     }
 
     // Rollback Sale record (deletes sale_items cascadingly)

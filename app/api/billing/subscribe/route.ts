@@ -27,6 +27,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Only shop owners can purchase subscriptions.' }, { status: 403 });
     }
 
+    // Map plan to expected prices (in paise)
+    const PLAN_PRICES: Record<string, number> = {
+      premium: 100, // ₹1 test price for premium
+      // monthly: 39900, // ₹399 in paise (future pricing tier)
+    };
+
+    const expectedAmount = PLAN_PRICES[plan];
+    if (expectedAmount === undefined) {
+      return NextResponse.json({ error: 'Unknown plan requested.' }, { status: 400 });
+    }
+
     // Server-side Razorpay verification
     const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -48,11 +59,11 @@ export async function POST(req: NextRequest) {
 
         if (rzRes.ok) {
           const rzData = await rzRes.json();
-          // Verify status is captured or authorized, and amount is correct (₹1 = 100 paise)
-          if ((rzData.status === 'captured' || rzData.status === 'authorized') && rzData.amount === 100) {
+          // Verify status is captured or authorized, and amount matches expectedAmount
+          if ((rzData.status === 'captured' || rzData.status === 'authorized') && rzData.amount === expectedAmount) {
             paymentVerified = true;
           } else {
-            return NextResponse.json({ error: `Invalid payment status (${rzData.status}) or amount (${rzData.amount})` }, { status: 400 });
+            return NextResponse.json({ error: `Invalid payment status (${rzData.status}) or amount (${rzData.amount}). Expected: ${expectedAmount} paise.` }, { status: 400 });
           }
         } else {
           const errorData = await rzRes.text();
@@ -77,6 +88,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment verification failed' }, { status: 400 });
     }
 
+    // Verify that this paymentId hasn't been processed already (Payment Replay prevention)
+    const { data: existingTx, error: txCheckErr } = await supabase
+      .from('billing_transactions')
+      .select('id')
+      .eq('transaction_ref', paymentId)
+      .maybeSingle();
+
+    if (txCheckErr) {
+      throw txCheckErr;
+    }
+
+    if (existingTx) {
+      return NextResponse.json({ error: 'Duplicate payment: This transaction reference has already been processed.' }, { status: 400 });
+    }
+
     // Calculate new trial_ends_at (30 days from now)
     const newSubscriptionEnd = new Date();
     newSubscriptionEnd.setDate(newSubscriptionEnd.getDate() + 30);
@@ -98,7 +124,7 @@ export async function POST(req: NextRequest) {
       .from('billing_transactions')
       .insert({
         shop_id: shopId,
-        amount: 1, // INR 1 testing price
+        amount: expectedAmount / 100, // log in INR rather than paise
         plan,
         payment_method: 'razorpay',
         transaction_ref: paymentId,
