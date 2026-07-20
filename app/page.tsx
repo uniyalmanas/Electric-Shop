@@ -319,12 +319,142 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- ABOUT US SECTION --- */}
-      <section id="about" className="border-t border-[#38403F]/50 py-24 px-6 z-10 max-w-4xl mx-auto space-y-6">
-        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-center">{t.aboutTitle}</h2>
-        <p className="text-sm md:text-base text-[#93A0A3] leading-relaxed font-medium text-center">
-          {t.aboutDesc}
-        </p>
+      {/* --- ABOUT US & SYSTEM CAPABILITIES (Vibrant & Colorful) --- */}
+      <section id="about" className="border-t border-[#38403F]/50 py-24 px-6 z-10 max-w-6xl mx-auto space-y-16">
+        
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
+          <span className="font-mono text-[9px] tracking-widest text-[#E0954F] uppercase bg-[#C1793D]/10 border border-[#C1793D]/25 px-3 py-1 rounded-full">
+            Ecosystem Core
+          </span>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tight">
+            About <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#C1793D] via-[#E0954F] to-[#4FAE7A]">ElectroStock</span>
+          </h2>
+          <p className="text-sm md:text-base text-[#93A0A3] leading-relaxed font-medium">
+            ElectroStock is a next-generation SaaS inventory and retail POS built exclusively for electrical merchants. We eliminate manual calculations with automated Weighted Average Costing (WAC), allow hands-free counter billing via voice commands and barcode scanners, and make supplier invoice entry instantaneous using AI bill parsing.
+          </p>
+        </div>
+
+        {/* Feature Grid with Vibrant Colorful accents */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <div className="group relative bg-gradient-to-br from-[#C1793D]/5 to-amber-500/5 border border-[#38403F] hover:border-[#C1793D]/30 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg text-left">
+            <span className="absolute top-3 right-3 text-[8px] font-extrabold tracking-widest text-[#E0954F] bg-[#C1793D]/10 border border-[#C1793D]/25 px-2 py-0.5 rounded-full font-mono">CORE WAC</span>
+            <div className="w-10 h-10 rounded-xl bg-[#C1793D]/10 border border-[#C1793D]/30 flex items-center justify-center text-lg text-[#E0954F] mb-4">📦</div>
+            <h4 className="font-bold text-[#EDEAE3] group-hover:text-[#E0954F] transition-colors">Precise SKU Inventory</h4>
+            <p className="text-xs text-[#93A0A3] leading-relaxed mt-1 font-medium">Dynamic category separation (wires, switches, MCBs) with automatic WAC margin calculators.</p>
+          </div>
+
+          <div className="group relative bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-[#38403F] hover:border-emerald-500/30 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg text-left">
+            <span className="absolute top-3 right-3 text-[8px] font-extrabold tracking-widest text-emerald-450 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full font-mono">GEMINI NLP</span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-lg text-emerald-400 mb-4">🎙️</div>
+            <h4 className="font-bold text-[#EDEAE3] group-hover:text-emerald-450 transition-colors">Hinglish Voice POS</h4>
+            <p className="text-xs text-[#93A0A3] leading-relaxed mt-1 font-medium">Check out orders hands-free in mixed Hinglish. Transcribes, resolves contractors, and loads carts instantly.</p>
+          </div>
+
+          <div className="group relative bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-[#38403F] hover:border-indigo-500/30 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg text-left">
+            <span className="absolute top-3 right-3 text-[8px] font-extrabold tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/25 px-2 py-0.5 rounded-full font-mono">AI OCR</span>
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-lg text-indigo-400 mb-4">🧾</div>
+            <h4 className="font-bold text-[#EDEAE3] group-hover:text-indigo-400 transition-colors">AI Invoice Ingestion</h4>
+            <p className="text-xs text-[#93A0A3] leading-relaxed mt-1 font-medium">Scan distributor invoices with Gemini AI. Automatically matches items, resolution rules, and logs payables.</p>
+          </div>
+
+          <div className="group relative bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-[#38403F] hover:border-blue-500/30 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg text-left">
+            <span className="absolute top-3 right-3 text-[8px] font-extrabold tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/25 px-2 py-0.5 rounded-full font-mono">FINANCE CONTROL</span>
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-lg text-blue-400 mb-4">💰</div>
+            <h4 className="font-bold text-[#EDEAE3] group-hover:text-blue-400 transition-colors">Portal Finance Hub</h4>
+            <p className="text-xs text-[#93A0A3] leading-relaxed mt-1 font-medium">A unified treasury panel logging sales inflows, supplier debts, contractor credit, and net operating profit margins.</p>
+          </div>
+
+          <div className="group relative bg-gradient-to-br from-rose-500/5 to-red-500/5 border border-[#38403F] hover:border-rose-500/30 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg text-left">
+            <span className="absolute top-3 right-3 text-[8px] font-extrabold tracking-widest text-rose-455 bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 rounded-full font-mono">SECURITY LOCK</span>
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-lg text-rose-455 mb-4">👥</div>
+            <h4 className="font-bold text-[#EDEAE3] group-hover:text-rose-455 transition-colors">Active Roster Locks</h4>
+            <p className="text-xs text-[#93A0A3] leading-relaxed mt-1 font-medium">Instantly terminate staff counter access when deactivated. Purges session cookies and blocks access globally.</p>
+          </div>
+
+          <div className="group relative bg-gradient-to-br from-amber-500/5 to-yellow-500/5 border border-[#38403F] hover:border-amber-500/30 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg text-left">
+            <span className="absolute top-3 right-3 text-[8px] font-extrabold tracking-widest text-amber-500 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full font-mono">MANUAL UPI</span>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-lg text-amber-500 mb-4">📱</div>
+            <h4 className="font-bold text-[#EDEAE3] group-hover:text-amber-500 transition-colors">UPI QR & Receipts</h4>
+            <p className="text-xs text-[#93A0A3] leading-relaxed mt-1 font-medium">Scan QR to subscribe, submit transaction UTRs for master review, and download print-ready receipts.</p>
+          </div>
+
+        </div>
+
+        {/* Detailed Architecture Panel */}
+        <div className="bg-[#1E2427] border border-[#38403F] rounded-3xl p-8 space-y-6 shadow-2xl relative overflow-hidden text-left">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#C1793D]" />
+          
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-[#EDEAE3]">System Architecture & Foundation Registry</h3>
+            <p className="text-xs text-[#93A0A3]">Every built component conforms to high-precision engineering guidelines:</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 text-xs text-[#EDEAE3] leading-relaxed">
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">📄</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">schema.sql</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Full Postgres multi-tenant schema with row level security.</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">👥</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">Owner/Staff Separation</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Enforced via Database RLS rules and Next.js Router Middleware.</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">💻</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">Double-Screen POS Interface</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Optimized product directory grid leading to quantity checkout.</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">🔄</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">Stock Movements Log</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Historical logs for every sale, damages, and return audits.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">🔍</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">Physical Stock Reconciliation</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Audit and reconcile physical catalog checks with database counts.</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">🔐</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">Dual-Credential Login</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Authenticate via 10-digit phone number or registered email.</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">💬</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">WhatsApp Receipt Pushes</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Direct receipt generation opening direct wa.me communication API.</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-[#C1793D] font-bold text-sm">🛎️</span>
+                <div>
+                  <strong className="block text-[#EDEAE3] font-bold">Bill Suspend (Hold/Retrieve)</strong>
+                  <span className="text-[#93A0A3] text-[11px]">Freeze checkout carts temporarily to process other customers.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       {/* --- CONTACT SECTION --- */}
